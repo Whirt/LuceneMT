@@ -1,6 +1,0 @@
-package LuceneIndexing;
-
-public enum BenchMarkID {
-	SMART,
-	TREC
-}

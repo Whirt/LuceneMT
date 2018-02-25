@@ -1,9 +1,0 @@
-package LuceneIndexing;
-
-public enum TolerantID {
-	WILDCARD, // Supporta sia pre/postfix che * interni
-			  // WILDCARD si differenzia dal Postfix perchè Lucene
-			  // implementa la Reverse solo 
-	POSTFIX, // disattiva le postfix
-	SPELCORR // Spelling Correction
-}

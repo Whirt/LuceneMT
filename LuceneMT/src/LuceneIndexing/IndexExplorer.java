@@ -11,7 +11,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -42,8 +41,16 @@ public class IndexExplorer {
 	private ScoreDoc[] hits;
 	private int totalHits;
 	private Document[] resultDoc;
-	// Supporto per prova fino
-	private String[] alternatives ;
+	private int page; // pagina di riferimento di tali risultati
+	
+	// Hit sotto la quale si sospetta si necessiti di un alternativa
+	private final static int ALTERN_TRESHOLD = 2;
+	private final static int MAX_ALTERN = 5;
+	
+	// error state result
+	private boolean success;
+	private String errorString;
+	private String successString;
 	
 	// Spelling check
 	private SpellChecker spell;
@@ -82,25 +89,28 @@ public class IndexExplorer {
 		if (tolerantMode == TolerantID.POSTFIX)
 			parser.setAllowLeadingWildcard(true);
 		
+		// if error is encountered, success will be false and error string
+		// will be valid
+		success = true;
+		errorString = ""; 
+		successString = "";
+		
+		// result page will start from 0
+		page = 0;
+		
 		// handling fuzzy queries
 		Query query;
 		String term = queryString;
 		// forbid postfix if Tolerant Mode PostFix is not set
-		//if ((queryString.charAt(0) == '*') && (tolerantMode != TolerantID.POSTFIX))
+		if ((queryString.charAt(0) == '*') 
+				&& (tolerantMode != TolerantID.POSTFIX)) {
+			success = false;
+			errorString = "Tolerant Mode POSTFIX must be set";
+			return;
+		}
 			
-			
-		String[] tokens = term.split(" ");
-		// Nel caso di piu' termini fuzzy va usato un'altra query di support
-		if (tokens.length > 1 && tolerantMode == TolerantID.PLUSFUZZY) {
-			SpanQuery[] clauses = new SpanQuery[tokens.length];
-			for (int i = 0 ; i < tokens.length ; i++) {
-				clauses[i] = new SpanMultiTermQueryWrapper<FuzzyQuery>(
-						new FuzzyQuery(new Term(field.toString(),
-						tokens[i])));
-			}
-			SpanNearQuery span = new SpanNearQuery(clauses, 0, true);
 		// Nel caso di un termine fuzzy è più semplice
-		} if (tokens.length == 1 && tolerantMode == TolerantID.ONEFUZZY) {
+		if (tolerantMode == TolerantID.FUZZY) {
 			query = new FuzzyQuery(new Term(field.toString(),queryString));
 		} else { // prefix query
 			query = parser.parse(queryString);
@@ -114,23 +124,27 @@ public class IndexExplorer {
 		System.out.println("Hits len:"+hits.length);
 		
 		// handling alternatives
-		if (totalHits != 0 && tolerantMode == TolerantID.ALTERN) {
+		String[] tokens = term.split(" ");
+		if (totalHits < ALTERN_TRESHOLD && tolerantMode == TolerantID.ALTERN) {
 			SpellChecker spell = new SpellChecker(indexDir);
 			IndexWriterConfig iwc = new IndexWriterConfig();
 			spell.indexDictionary(
 					new LuceneDictionary(reader,DocFields.content.toString()),
 					iwc, false);
-			alternatives = new String[tokens.length];
+			successString += "Suggested terms:" + System.getProperty("line.separator");
 			for (int i = 0 ; i < tokens.length ; i++) {
 				// le guide informano di sceglierne almeno 5
 				// per aver dei buoni suggerimenti, tuttavia è ad uso
 				// dimostrativo, quindi ne lascio 1
-				String[] similar = spell.suggestSimilar(tokens[i],1);
+				String[] similar = spell.suggestSimilar(tokens[i],MAX_ALTERN);
 				if (similar == null || similar.length == 0) {
-					alternatives[i] = "No Suggestions";
-				} else
-					alternatives[i] = similar[0];
-				System.out.println(alternatives[i]);
+					successString += "No Suggestions for term "+ tokens[i] 
+								+ System.getProperty("line.separator");
+				} else {
+					for (int j = 0 ; j < similar.length ; j++)
+						successString += similar[j] + " ";
+					successString += System.getProperty("line.separator");
+				}
 			}
 			spell.close();
 		}
@@ -146,7 +160,7 @@ public class IndexExplorer {
 		 * di alternative per ogni index term nella query, per ogni token
 		 * si offre un suggerimento */
 		//if (tolerantMode == TolerantID.SPELLCHECK) {
-		//	sugg = spell.suggestSimilar("computre",1);
+		//	sug = spell.suggestSimilar("computre",1);
 		//	for (int i = 0 ; i < sug.length ; i++) {
 		//		System.out.println("Suggerimenti:" + sug[i]);
 		//	}
@@ -154,27 +168,83 @@ public class IndexExplorer {
 		//}
 	}
 	
+	/** Get query result */
+	public String getResult() {
+		if (success) 
+			return getSuccessfullResult();
+		else 
+			return errorString;
+	}
+	
+	/** Set next page, to check its effect invoke getResult 
+	 * @return false if operation is not permitted */
+	public boolean nextPage() {
+		successString = ""; // refresh
+		if (success && (page+1) < getNumPage()) {
+			page++;
+			return true;
+		}
+		return false ;
+	}
+	/** Set previous page, getResult is suggested after this operation 
+	 * @return false if operation is not permitted */ 
+	public boolean previousPage() {
+		successString = "";
+		if (success && page > 0) {
+			page--;
+			return true;
+		}
+		return false;
+	}
+	
 	// getters
 	/** Get number of result pages */
-	public int getNumPage() { 
+	private int getNumPage() { 
 		if (hits.length == 0) return 1;
 		if (hits.length%HITSPERPAGE == 0) return hits.length/HITSPERPAGE;
 		else return hits.length/HITSPERPAGE+1;
 	}
-	/** Get total number of hits */
-	public int getTotalHit() { return totalHits; }
-	/** Get number of document in the answer */
-	public int getResultDocNum() { return hits.length; }
-
-	public Document getDocument(int position) throws IOException {
+	
+	private Document getDocument(int position) throws IOException {
 		if (position < 0 || position >= totalHits)
 			return null;
 			
 		return resultDoc[position];
 	}
 
-	/** Get list of "Did you mean?" terms */
-	public String[] getAlternatives() {
-		return alternatives;
+	/** Get search result string */
+	private String getSuccessfullResult() {
+		String header = "Total hits: "+totalHits
+				+" Retrieved Docs: "+hits.length
+				+" Page "+(page+1)+"/"+getNumPage()+System.getProperty("line.separator");
+		successString += header;
+		int maxPosition = hits.length;
+		int offset = page*IndexExplorer.HITSPERPAGE;
+		try {
+			for (int i = offset ; i < offset+IndexExplorer.HITSPERPAGE
+					&& i < maxPosition ; i++) {
+				Document doc;
+				doc = getDocument(i);
+				if (doc == null) {
+					System.err.println("IndexExplorer returned null document");
+					break;
+				}
+				Integer rankPosition = i+1;
+				String rankRecord = rankPosition.toString() + ". " ;
+				rankRecord += "Id:"+doc.get(DocFields.id.toString())
+					+System.getProperty("line.separator");
+				rankRecord += "Title:"+doc.get(DocFields.title.toString());
+				String author = doc.get(DocFields.author.toString());
+				if (author.equals("")) // estetico
+					author = System.getProperty("line.separator");
+				rankRecord += "Author:"+author;
+				rankRecord += System.getProperty("line.separator");
+				successString += rankRecord;
+			}
+		} catch (IOException e) {
+			System.err.println("Error during document listing");
+			e.printStackTrace();
+		}
+		return successString;
 	}
 }

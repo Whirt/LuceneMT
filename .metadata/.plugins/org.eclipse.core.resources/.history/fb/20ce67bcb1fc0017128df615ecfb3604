@@ -1,9 +1,0 @@
-package LuceneIndexing;
-
-public enum DocumentFields {
-	ALL,
-	id,
-	title,
-	author,
-	content
-}

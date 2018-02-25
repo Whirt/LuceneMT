@@ -72,7 +72,6 @@ public class FreeModePanel extends JPanel implements ActionListener {
 
 	// Retrieved Doc
 	private IndexExplorer ie;
-	private int page; // pagina di riferimento di tali risultati
 	
 	/** Class containing button and labels for free model
 	 */
@@ -170,39 +169,6 @@ public class FreeModePanel extends JPanel implements ActionListener {
 		add(prevBtn); add(nextBtn); add(closeBtn);
 	}
 	
-	// Mostra i documenti da firstDoc a lastDoc, e si ferma fino al massimo
-	// nel caso lastDoc sfori il limite
-	private void showRankOnArea(int page) {
-		String header = "Total hits: "+ie.getTotalHit()
-				+" Retrieved Docs: "+ie.getResultDocNum()
-				+" Page "+(page+1)+"/"+ie.getNumPage()+System.getProperty("line.separator");
-		resultArea.setText(header);
-		int maxPosition = ie.getResultDocNum();
-		int offset = page*IndexExplorer.HITSPERPAGE;
-		try {
-		for (int i = offset ; i < offset+IndexExplorer.HITSPERPAGE
-				&& i < maxPosition ; i++) {
-			Document doc;
-			doc = ie.getDocument(i);
-			if (doc == null) {
-				System.err.println("IndexExplorer returned null document");
-				break;
-			}
-			Integer rankPosition = i+1;
-			String rankRecord = rankPosition.toString() + ". " ;
-			rankRecord += "Id:"+doc.get(DocFields.id.toString())
-				+System.getProperty("line.separator");
-			rankRecord += "Title:"+doc.get(DocFields.title.toString());
-			rankRecord += "Author:"+doc.get(DocFields.author.toString());
-			rankRecord += System.getProperty("line.separator");
-			resultArea.append(rankRecord);
-		}
-		} catch (IOException e) {
-			System.err.println("Error during document listing");
-			e.printStackTrace();
-		}
-	}
-	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		Object source = e.getSource();
@@ -211,7 +177,7 @@ public class FreeModePanel extends JPanel implements ActionListener {
 			String queryText = queryTxtFld.getText();
 			if (queryText == null || searchIndexPath == null ||
 				queryText.equals("") || searchIndexPath.equals("")) {
-				resultArea.append("Insert query please or index path\n");
+				resultArea.append("Insert query or index path please");
 				return ;
 			}
 			resultArea.append("Searching for "+queryText+"..."+
@@ -222,9 +188,7 @@ public class FreeModePanel extends JPanel implements ActionListener {
 						(TolerantID)tolerantCB.getSelectedItem(),
 						(DocFields)fieldCB.getSelectedItem());
 				resultArea.append("Done"+System.getProperty("line.separator"));
-				page = 0;
-							
-				showRankOnArea(page);	
+				resultArea.setText(ie.getResult());	
 			} catch (Exception e1) {
 				System.err.println("Error during searching phase");
 			}
@@ -257,14 +221,14 @@ public class FreeModePanel extends JPanel implements ActionListener {
 						+ " tutti i campi per l'indicizzazione\n");
 			}
 			resultArea.append("Done"+System.getProperty("line.separator"));
-		} if (source == nextBtn && ie != null && (page+1) < ie.getNumPage()) {
+		} if (source == nextBtn && ie != null) {
 			resultArea.setText(null);
-			page++;
-			showRankOnArea(page);
-		} if (source == prevBtn && ie != null && page > 0) {
+			ie.nextPage();
+			resultArea.setText(ie.getResult());	
+		} if (source == prevBtn && ie != null) {
 			resultArea.setText(null);
-			page--;
-			showRankOnArea(page);
+			ie.previousPage();
+			resultArea.setText(ie.getResult());	
 		}
 		
 	}

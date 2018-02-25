@@ -1,7 +1,0 @@
-package LuceneIndexing;
-
-public enum TolerantID {
-	PREFIXINFIX, // Supporta sia pre/postfix che * interni
-	POSTFIX, // disattiva le postfix
-	SPELCORR // Spelling Correction
-}

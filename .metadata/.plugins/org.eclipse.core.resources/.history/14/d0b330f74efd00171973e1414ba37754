@@ -1,9 +1,0 @@
-package LuceneIndexing;
-
-/* Classe che ha il compito, dato una sequenza di termini di restituire
- * dei termini più probabili
- */
-
-public class SpellCheckerMT {
-
-}

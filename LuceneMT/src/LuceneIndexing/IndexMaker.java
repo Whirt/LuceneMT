@@ -25,7 +25,11 @@ import BenchMarking.BenchMarkID;
 /* Si chiama IndexMaker solo per differenziarsi da IndexWriter
  * è orientato al benchmark SMART http://ir.dcs.gla.ac.uk/resources/test_collections/
  */
-
+/** IndexMaker provides indexing function for different opensource benchmark 
+ * included in this project and downloaded/sometimes corrected from
+ * several open-source site.
+ * since LuceneMT focus on testing tolerant and models, it does not support 
+ * general purpose indexing. */
 public class IndexMaker {
 
 	private String result;
@@ -34,6 +38,13 @@ public class IndexMaker {
 	 * e l'indice lo scrive sul file system al path destPath seguendo
 	 * il modello indicato, nel caso sia il benchmark */
 	private IndexMaker() {}
+	/** IndexMaker is the main program 
+	 * @param docsFilePath, document source path
+	 * @param destPath, index storing path
+	 * @param model, model used on index writing 
+	 * @param bench, benchmark chosen, since writing is benchmark dependent
+	 * @throws Exception
+	 */
 	public IndexMaker(String docsFilePath, String destPath, 
 			ModelsID model, BenchMarkID bench)
 		throws Exception {

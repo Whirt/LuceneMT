@@ -7,6 +7,5 @@ public enum TolerantID {
 			  	// addotta altri meccanismi
 	POSTFIX, 	// disattiva le postfix
 	ALTERN,   	// vengono suggerite alternative in caso di query giuste
-	PLUSFUZZY,	// vengono corretti gli errori nelle query con piu' termini
-	ONEFUZZY	// nel caso non si ricordi esattamente una parola
+	FUZZY	// nel caso non si ricordi esattamente una parola
 }

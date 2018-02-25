@@ -1,6 +1,0 @@
-package LuceneIndexing;
-
-public enum TolerantID {
-	WILDCARDS, // Supporta sia pre/postfix che * interni 
-	SPELCORR // Spelling Correction
-}

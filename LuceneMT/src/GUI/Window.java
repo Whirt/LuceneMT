@@ -14,7 +14,7 @@ public class Window extends JFrame {
 	private static final long serialVersionUID = -2815577872584840591L;
 	
 	private static final int FRAME_HEIGHT = 690;
-	private static final int FRAME_WIDTH = 700;
+	private static final int FRAME_WIDTH = 703;
 	
 	private static final String title = "LuceneMT";
 	
@@ -34,5 +34,6 @@ public class Window extends JFrame {
 		panel.setLayout(new GridLayout(1,1));
 		add(panel);
 		setVisible(true);
+		setResizable(false);
 	}
 }

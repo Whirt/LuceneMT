@@ -1,5 +1,0 @@
-package BenchMarking;
-
-public enum BenchMark {
-	SMART,
-}

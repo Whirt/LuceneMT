@@ -1,6 +1,0 @@
-package LuceneIndexing;
-
-public enum ModelsID {
-	CLASSIC,
-	BM25
-}

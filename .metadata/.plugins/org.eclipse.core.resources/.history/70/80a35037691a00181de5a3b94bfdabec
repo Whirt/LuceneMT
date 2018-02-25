@@ -1,0 +1,39 @@
+package GUI;
+
+import java.awt.GridLayout;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+
+/** This class collects several panel from java.awt e javax.swing to glue
+ * each component into one window
+ */
+
+public class Window extends JFrame {
+	private static final long serialVersionUID = -2815577872584840591L;
+	
+	private static final int FRAME_HEIGHT = 690;
+	private static final int FRAME_WIDTH = 705;
+	
+	private static final String title = "LuceneMT";
+	
+	/** Windows simply contains FreeModePanel and BenchmarkModePanel 
+	 */
+	public Window() {
+		super(title);
+		setSize(FRAME_WIDTH,FRAME_HEIGHT);
+		JPanel panel = new JPanel();
+		JTabbedPane tab = new JTabbedPane();
+		FreeModePanel pn = new FreeModePanel();
+		BenchmarkModePanel pn2 = new BenchmarkModePanel();
+		tab.add("Free Mode",pn);
+		tab.add("Benchmark Mode",pn2);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		panel.add(tab);
+		panel.setLayout(new GridLayout(1,1));
+		add(panel);
+		setVisible(true);
+		setResizable(false);
+	}
+}
