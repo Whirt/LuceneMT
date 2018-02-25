@@ -1,0 +1,9 @@
+package LuceneIndexing;
+
+/* Classe che ha il compito, dato 
+ * 
+ */
+
+public class SpellCheckerMT {
+
+}

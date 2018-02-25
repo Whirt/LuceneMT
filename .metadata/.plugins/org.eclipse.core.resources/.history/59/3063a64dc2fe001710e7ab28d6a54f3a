@@ -1,0 +1,9 @@
+package BenchMarking;
+
+/* Classe che automatizza il processo di valutazione delle Precision
+ * e Recall del benchmark SMART
+ */
+
+public class SmartBCM {
+	
+}

@@ -1,0 +1,13 @@
+package LuceneIndexing;
+
+/* Classe addetta alla creazione dell'indice, si chiama Index"Maker" solo
+ * per differenziarsi dalla classe IndexWriter
+ */
+
+public class IndexMaker {
+
+	private IndexMaker();
+	public IndexMaker(String docsDir, String destDir, ModelsID model) {
+		
+	}
+}

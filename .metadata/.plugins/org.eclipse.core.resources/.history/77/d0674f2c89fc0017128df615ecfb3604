@@ -1,0 +1,9 @@
+package LuceneIndexing;
+
+/* Classe addetta alla creazione dell'indice 
+ * 
+ */
+
+public class IndexMaker {
+
+}

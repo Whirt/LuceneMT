@@ -1,0 +1,292 @@
+package GUI;
+
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+
+import org.apache.lucene.document.Document;
+
+import BenchMarking.BenchMark;
+import Enums.DocFields;
+import Enums.ModelsID;
+import Enums.TolerantID;
+import LuceneIndexing.IndexExplorer;
+import LuceneIndexing.IndexMaker;
+
+/* La classe Panel funziona da intermediario tra l'input utente
+ * e i dati necessari al programma per svolgere il proprio compito
+ * essa sfrutta e richiede i servizi di Lucene per fare le query,
+ * calcolare le risposte, stampare le risposte sulla propria area.
+ */
+
+public class Panel extends JPanel implements ActionListener {
+	private static final long serialVersionUID = 1L;
+
+	private static final Color BACKGROUND_COLOR = new Color(159,217,168);
+	
+	private Image logo ;
+	private static final int LOGO_OFFSET_X = 80;
+	private static final int LOGO_INVERSE_OFFSET_Y = 70;
+	private static final int LOGO_WIDTH = 280;
+	private static final int LOGO_HEIGHT = 50;
+	
+	private static final int MAX_USER_QUERY_LEN = 20;
+	private static final int MAX_INDEX_PATH_LEN = 40;
+	
+	private static final int TEXT_AREA_ROW = 28;
+	private static final int TEXT_AREA_COLUMN = 61;
+	
+	private JLabel queryLb,indexSearchPathLb,indexWritePathLb,newIndexDestPathLb;
+	private JTextField queryTxtFld,searchIndexPathTxt,indexedPath,newIndexDestTxt;
+	private JButton queryBtn,searchIndexBtn,indexedBtn, newIndexDestBtn;
+	private JButton createIndexBtn;
+	private JFileChooser searchIndexFc, indexedFc, newIndexDestFc;
+	
+	private JLabel modelWriteSimilLb, modelSearchSimilLb, tolerantLb;
+	private JComboBox modelWriteSimilCB,modelSearchSimilCB,
+				tolerantCB,fieldCB,benchMarkCB;
+	
+	// resultArea è usato sia per i risultati, nel caso vada a buon fine la 
+	// richiesta, sia per fare report di errori
+	private JTextArea resultArea;
+	private JButton prevBtn, nextBtn, closeBtn;
+	
+	// Directory Control Strings
+	private String searchIndexPath, toBeIndexedPath, newIndexDest;
+
+	// Retrieved Doc
+	private IndexExplorer ie;
+	private int page; // pagina di riferimento di tali risultati
+	
+	public Panel() {
+		super();
+		
+		// Labels
+		queryLb = new JLabel("->");
+		indexSearchPathLb = new JLabel("IndexSearch path: ");
+		indexWritePathLb = new JLabel("IndexWrite path: ");
+		newIndexDestPathLb = new JLabel("Index Destination: ");
+		modelWriteSimilLb = new JLabel("Write Simil. and benchmark");
+		modelSearchSimilLb = new JLabel("Search Simil.");
+		tolerantLb = new JLabel("Tolerant disable:");
+		queryLb.setBackground(BACKGROUND_COLOR);
+		indexSearchPathLb.setBackground(BACKGROUND_COLOR);
+		indexWritePathLb.setBackground(BACKGROUND_COLOR);
+		newIndexDestPathLb.setBackground(BACKGROUND_COLOR);
+		modelWriteSimilLb.setBackground(BACKGROUND_COLOR);
+		modelSearchSimilLb.setBackground(BACKGROUND_COLOR);
+		tolerantLb.setBackground(BACKGROUND_COLOR);
+		queryLb.setForeground(Color.WHITE);
+		indexSearchPathLb.setForeground(Color.WHITE);
+		indexWritePathLb.setForeground(Color.WHITE);
+		newIndexDestPathLb.setForeground(Color.WHITE);
+		modelWriteSimilLb.setForeground(Color.WHITE);
+		modelSearchSimilLb.setForeground(Color.WHITE);
+		tolerantLb.setForeground(Color.WHITE);
+		
+		// text fields
+		queryTxtFld = new JTextField("",MAX_USER_QUERY_LEN);
+		searchIndexPathTxt = new JTextField("",MAX_INDEX_PATH_LEN);
+		searchIndexPathTxt.setEditable(false);
+		indexedPath = new JTextField("",MAX_INDEX_PATH_LEN);
+		indexedPath.setEditable(false);
+		newIndexDestTxt = new JTextField("",MAX_INDEX_PATH_LEN);
+		newIndexDestTxt.setEditable(false);
+		
+		// buttons
+		queryBtn = new JButton("Query");
+		searchIndexBtn = new JButton("Choose");
+		indexedBtn = new JButton("Choose");
+		newIndexDestBtn = new JButton("Choose");
+		createIndexBtn = new JButton("GENERATE INDEX");
+		prevBtn = new JButton("Previous");
+		nextBtn = new JButton("Next");
+		closeBtn = new JButton("Close result");
+		queryBtn.addActionListener(this);
+		searchIndexBtn.addActionListener(this);
+		indexedBtn.addActionListener(this);
+		newIndexDestBtn.addActionListener(this);
+		createIndexBtn.addActionListener(this);
+		prevBtn.addActionListener(this);
+		nextBtn.addActionListener(this);
+		closeBtn.addActionListener(this);
+		
+		// file chooser
+		searchIndexFc = new JFileChooser(".");
+		indexedFc = new JFileChooser(".");
+		newIndexDestFc = new JFileChooser(".");
+		searchIndexFc.setDialogTitle("Select which index to query");
+		indexedFc.setDialogTitle("Select which index to query");
+		newIndexDestFc.setDialogTitle("Select where to generate Index");
+		// SMART Oriented
+		searchIndexFc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		indexedFc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		newIndexDestFc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		searchIndexFc.setAcceptAllFileFilterUsed(false);
+		indexedFc.setAcceptAllFileFilterUsed(false);
+		newIndexDestFc.setAcceptAllFileFilterUsed(false);
+		
+		// jcombobox
+		modelWriteSimilCB = new JComboBox<ModelsID>(ModelsID.values());
+		modelSearchSimilCB = new JComboBox<ModelsID>(ModelsID.values());
+		tolerantCB = new JComboBox<TolerantID>(TolerantID.values());
+		fieldCB = new JComboBox<DocFields>(DocFields.values());
+		benchMarkCB = new JComboBox<BenchMark>(BenchMark.values());
+		
+		// area buttons
+		resultArea = new JTextArea(TEXT_AREA_ROW,TEXT_AREA_COLUMN);
+		resultArea.setEditable(false);
+		JScrollPane scroll = new JScrollPane(resultArea);
+		scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		
+		// adding up
+		setLayout(new FlowLayout(FlowLayout.TRAILING));
+		add(queryLb); add(queryTxtFld); add(queryBtn); add(fieldCB); add(tolerantCB);
+		add(createIndexBtn);
+		add(modelSearchSimilLb); add(modelSearchSimilCB);
+		add(modelWriteSimilLb); add(modelWriteSimilCB); add(benchMarkCB);
+		add(indexSearchPathLb); add(searchIndexPathTxt); add(searchIndexBtn);
+		add(indexWritePathLb); add(indexedPath); add(indexedBtn);
+		add(newIndexDestPathLb); add(newIndexDestTxt); add(newIndexDestBtn);
+		add(scroll);
+		add(prevBtn); add(nextBtn); add(closeBtn);
+	}
+	
+	// Mostra i documenti da firstDoc a lastDoc, e si ferma fino al massimo
+	// nel caso lastDoc sfori il limite
+	private void showRankOnArea(int page) {
+		String header = "Total hits: "+ie.getTotalHit()
+				+" Retrieved Docs: "+ie.getResultDocNum()
+				+" Page "+(page+1)+"/"+ie.getNumPage()+System.getProperty("line.separator");
+		resultArea.setText(header);
+		int maxPosition = ie.getResultDocNum();
+		int offset = page*IndexExplorer.HITSPERPAGE;
+		try {
+		for (int i = offset ; i < offset+IndexExplorer.HITSPERPAGE
+				&& i < maxPosition ; i++) {
+			Document doc;
+			doc = ie.getDocument(i);
+			if (doc == null) {
+				System.err.println("IndexExplorer returned null document");
+				break;
+			}
+			Integer rankPosition = i+1;
+			String rankRecord = rankPosition.toString() + ". " ;
+			rankRecord += "Id:"+doc.get(DocFields.id.toString())
+				+System.getProperty("line.separator");
+			rankRecord += "Title:"+doc.get(DocFields.title.toString());
+			rankRecord += "Author:"+doc.get(DocFields.author.toString());
+			rankRecord += System.getProperty("line.separator");
+			resultArea.append(rankRecord);
+		}
+		} catch (IOException e) {
+			System.err.println("Error during document listing");
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		Object source = e.getSource();
+		if (source == queryBtn) {
+			resultArea.setText(null);
+			String queryText = queryTxtFld.getText();
+			if (queryText == null || searchIndexPath == null ||
+				queryText.equals("") || searchIndexPath.equals("")) {
+				resultArea.append("Insert query please or index path\n");
+				return ;
+			}
+			resultArea.append("Searching for "+queryText+"..."+
+								System.getProperty("line.separator"));
+			try {
+				ie = new IndexExplorer(queryText,searchIndexPath,
+						(ModelsID)modelSearchSimilCB.getSelectedItem(),
+						(TolerantID)tolerantCB.getSelectedItem(),
+						(DocFields)fieldCB.getSelectedItem());
+				resultArea.append("Done"+System.getProperty("line.separator"));
+				page = 0;
+				showRankOnArea(page);
+				
+			} catch (Exception e1) {
+				System.err.println("Error during searching");
+			}
+		} if (source == searchIndexBtn) {
+			if (searchIndexFc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+				searchIndexPath = searchIndexFc.getSelectedFile().getPath();
+				searchIndexPathTxt.setText(searchIndexPath);
+			}
+		} if (source == indexedBtn) {
+			if (indexedFc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+				toBeIndexedPath = (indexedFc.getSelectedFile()).getPath();
+				indexedPath.setText(toBeIndexedPath);
+			}
+		} if (source == newIndexDestBtn) {
+			if (newIndexDestFc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+				newIndexDest = newIndexDestFc.getSelectedFile().getPath();
+				newIndexDestTxt.setText(newIndexDest);
+			}
+		} if (source == createIndexBtn) {
+			resultArea.setText(null);
+			resultArea.append("Start indexing..."+System.getProperty("line.separator"));
+			try {
+				IndexMaker im = new IndexMaker(toBeIndexedPath,
+										newIndexDest,
+								(ModelsID)modelWriteSimilCB.getSelectedItem(),
+								(BenchMark)benchMarkCB.getSelectedItem());
+			} catch (Exception e1) {
+				System.err.println("Errore durante l'indicizzazione");
+				resultArea.append("ERRORE: Controlla di aver soddisfatto"
+						+ " tutti i campi per l'indicizzazione\n");
+			}
+			resultArea.append("Done"+System.getProperty("line.separator"));
+		} if (source == nextBtn && ie != null && (page+1) < ie.getNumPage()) {
+			resultArea.setText(null);
+			page++;
+			showRankOnArea(page);
+		} if (source == prevBtn && ie != null && page > 0) {
+			resultArea.setText(null);
+			page--;
+			showRankOnArea(page);
+		}
+		
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g) {
+		g.setColor(BACKGROUND_COLOR) ;
+		g.fillRect(0, 0, getWidth(), getHeight()) ;
+		
+		Toolkit t = Toolkit.getDefaultToolkit() ;
+		if (!(new File("./img/poweredbylucene.png").exists())) {
+			System.err.println("Logo file path error") ;
+			System.exit(-1);
+		}
+		logo = t.getImage("./img/poweredbylucene.png") ;
+		MediaTracker m = new MediaTracker(this) ;
+		m.addImage(logo, 1) ;
+		try { m.waitForAll(); 
+		} catch (InterruptedException e) {
+			System.err.println("Logo not loaded") ;
+			System.exit(-1);
+		}
+		
+		g.drawImage(logo, LOGO_OFFSET_X, getHeight()-LOGO_INVERSE_OFFSET_Y,
+						  LOGO_WIDTH, LOGO_HEIGHT, null) ;
+	}
+}

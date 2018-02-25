@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="lib" path="/home/hu/proj_Gavi_in_corso/Progetto_Java/LuceneMT/lucene_721_jres/lucene-analyzers-common-7.2.1.jar"/>
+	<classpathentry kind="lib" path="/home/hu/proj_Gavi_in_corso/Progetto_Java/LuceneMT/lucene_721_jres/lucene-core-7.2.1.jar"/>
+	<classpathentry kind="lib" path="/home/hu/proj_Gavi_in_corso/Progetto_Java/LuceneMT/lucene_721_jres/lucene-queryparser-7.2.1.jar"/>
+	<classpathentry kind="lib" path="/home/hu/proj_Gavi_in_corso/Progetto_Java/LuceneMT/lucene_721_jres/lucene-suggest-7.2.1.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

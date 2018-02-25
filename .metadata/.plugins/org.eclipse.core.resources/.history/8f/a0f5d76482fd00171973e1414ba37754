@@ -1,0 +1,28 @@
+
+import GUI.Window;
+
+/* Lucene Models and Tolerant retrieval test on sMarT benchmark
+ * 
+ * Apache Lucene è un pacchetto Java per sistemi d'information retrieval. 
+ * Supporta l'indexing, quindi pre-processing e la creazione/uso di modelli di 
+ * information retrieval per fare searching e ranking offrendo anche diverse 
+ * tecniche di Tolerant retrieval, il tutto è ottimizzato per ottenere alte 
+ * prestazioni. Inoltre nel caso non bastassero supporta anche la 
+ * personalizzazione/creazione di nuovi modelli di ranking e tipologie di query. 
+ * 
+ * Questo progetto mira alla presentazione del pacchetto Lucene vers. 7.2.1
+ * in particolare vuole permettere all'utente di testare i modelli classici
+ * di IR offerti dalla libreria, mettere in luce le tecniche di tolerant
+ * retrieval supportate e fornire dati per la valutazione della Precision
+ * e Recall tramite lo SMART Benchmark.
+ * 
+ * Data: Gennaio 2017
+ * Autore: Hu Jia Cheng
+ */
+public class LuceneMT {
+
+	public static void main(String[] args) {
+		System.out.println("Starting LuceneMT...");
+		Window wn = new Window();
+	}
+}

@@ -1,0 +1,28 @@
+package LuceneIndexing;
+
+import java.io.File;
+import java.nio.file.Files;
+
+/* Classe addetta alla creazione dell'indice, si chiama Index"Maker" solo
+ * per differenziarsi dalla classe IndexWriter
+ */
+
+public class IndexMaker {
+
+	private IndexMaker() {}
+
+	/* Indicizza ciascun elemento della cartella docs Path
+	 * e l'indice lo scrive sul file system al path destPath seguendo
+	 * il modello indicato */
+	public IndexMaker(String docsPath, String destPath, ModelsID model)
+		throws Exception {
+		if (docsPath == null || destPath == null || docsPath.equals(destPath) ||	
+			!Files.isReadable(Path.getPath(docsPath)) || Files.isReadable(path)) { 
+			throw new IllegalArgumentException();
+		}
+		
+		
+	}
+	
+	// primitive per ottenere i risultati
+}

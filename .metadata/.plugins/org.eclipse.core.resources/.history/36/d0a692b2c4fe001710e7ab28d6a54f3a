@@ -1,0 +1,9 @@
+package GUI;
+
+import javax.swing.JPanel;
+
+public class TabbedPanel extends JPanel {
+	public TabbedPanel() {
+		
+	}
+}

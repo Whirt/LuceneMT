@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="org.apache.lucene.document.Field.Store"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.Collector"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.TopScoreDocCollector"/>
+<fullyQualifiedTypeName name="javax.swing.JScrollBar"/>
+<fullyQualifiedTypeName name="javax.swing.JScrollPane"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.suggest.analyzing.FuzzySuggester"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.spell.SpellChecker"/>
+<fullyQualifiedTypeName name="org.apache.lucene.store.FSDirectory"/>
+<fullyQualifiedTypeName name="org.apache.lucene.store.Directory"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.spell.LuceneDictionary"/>
+<fullyQualifiedTypeName name="org.apache.lucene.index.IndexWriterConfig"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.TermQuery"/>
+<fullyQualifiedTypeName name="org.apache.lucene.analysis.core.WhitespaceAnalyzer"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.spans.SpanQuery"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.FuzzyQuery"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.spans.SpanMultiTermQueryWrapper"/>
+<fullyQualifiedTypeName name="org.apache.lucene.index.Term"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.spans.SpanNearQuery"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.BooleanQuery"/>
+<fullyQualifiedTypeName name="org.apache.lucene.analysis.Analyzer"/>
+<fullyQualifiedTypeName name="org.apache.lucene.index.IndexReader"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.TopDocs"/>
+<fullyQualifiedTypeName name="org.apache.lucene.search.ScoreDoc"/>
+<fullyQualifiedTypeName name="Enums.BenchMark"/>
+<fullyQualifiedTypeName name="javax.swing.JTabbedPane"/>
+<fullyQualifiedTypeName name="javax.swing.JComponent"/>
+<fullyQualifiedTypeName name="java.awt.BorderLayout"/>
+<fullyQualifiedTypeName name="java.awt.GridLayout"/>
+<fullyQualifiedTypeName name="javax.swing.JPanel"/>
+<fullyQualifiedTypeName name="java.awt.event.ActionListener"/>
+<fullyQualifiedTypeName name="javax.swing.JTextArea"/>
+<fullyQualifiedTypeName name="BenchMarking.BenchMarkID"/>
+</qualifiedTypeNameHistroy>

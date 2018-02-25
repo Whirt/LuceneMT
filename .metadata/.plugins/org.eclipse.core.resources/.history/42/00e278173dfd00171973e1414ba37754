@@ -1,0 +1,6 @@
+package LuceneIndexing;
+
+public enum TolerantID {
+	WILDCARDS, // Support Both Prefix and Regexp
+	SPELCORR // Spelling Correction
+}

@@ -1,0 +1,8 @@
+package LuceneIndexing;
+
+public enum DocFields {
+	content,
+	title,
+	author,
+	id
+}

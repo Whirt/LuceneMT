@@ -1,0 +1,6 @@
+package LuceneIndexing;
+
+public enum TolerantID {
+	WILDCARDS,
+	SPELCORR // Spelling Correction
+}

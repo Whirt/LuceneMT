@@ -1,0 +1,30 @@
+package GUI;
+
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JTabbedPane;
+
+/* Il programma si appoggia alla libreria grafica di java.awt e javax.swing
+ * per fornire all'utente le diverse tipologie di interazione
+ */
+
+public class Window extends JFrame {
+	private static final long serialVersionUID = -2815577872584840591L;
+	
+	private static final int FRAME_HEIGHT = 670;
+	private static final int FRAME_WIDTH = 700;
+	
+	private static final String title = "LuceneMT";
+	
+	public Window() {
+		super(title);
+		setSize(FRAME_WIDTH,FRAME_HEIGHT);
+		JPanel panel = new JPanel();
+		JTabbedPane tab = new JTabbedPane();
+		JComponent freePane = makeTextPanel("Free mode");
+		FreeModePanel pn = new FreeModePanel();
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setContentPane(pn);
+		setVisible(true);
+	}
+}

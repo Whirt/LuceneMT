@@ -1,0 +1,28 @@
+1516299563232	Rename compilation unit 'Pane.java'
+1516305143209	Rename type 'IndexSearcher'
+1516312738841	Rename type 'IndexMaker'
+1516312773004	Rename type 'SMARTIndexMaker'
+1516312992562	Rename type 'SMARTIndexWriter'
+1516313351096	Delete element
+1516327301040	Rename type 'DocumentFields'
+1516390083636	Rename type 'Suggester'
+1516390098323	Rename type 'wordSuggester'
+1516390130862	Delete element
+1516548895688	Move compilation unit
+1516548900704	Move compilation unit
+1516548904650	Move compilation unit
+1516549514361	Move compilation unit
+1516549520189	Move compilation unit
+1516549523560	Move compilation unit
+1516549527320	Move compilation unit
+1516549536949	Delete element
+1516549554056	Rename type 'BenchMark'
+1516549852282	Delete element
+1516549857755	Delete element
+1516549864148	Delete element
+1516549869001	Delete element
+1516549875208	Delete element
+1516549880408	Delete element
+1516549886234	Delete element
+1516550113311	Rename type 'Panel'
+1516550650226	Delete element

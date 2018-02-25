@@ -1,0 +1,138 @@
+package LuceneIndexing;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Scanner;
+import java.util.regex.Pattern;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+
+/* Si chiama IndexMaker solo per differenziarsi da IndexWriter
+ * è orientato al benchmark SMART http://ir.dcs.gla.ac.uk/resources/test_collections/
+ */
+
+public class IndexMaker {
+
+	private String result;
+	
+	/* Indicizza ciascun elemento della cartella docs Path
+	 * e l'indice lo scrive sul file system al path destPath seguendo
+	 * il modello indicato, nel caso sia il benchmark */
+	private IndexMaker() {}
+	public IndexMaker(String docsFilePath, String destPath, 
+			ModelsID model)
+		throws Exception {
+		if (docsFilePath == null || destPath == null || docsFilePath.equals(destPath) ||	
+			!Files.isReadable(Paths.get(docsFilePath)) ||
+			!Files.isWritable(Paths.get(destPath))) {
+			System.err.println("Error the following path\n"+docsFilePath+"\n"
+					+destPath+"\n"+"may not exist or respectively "+
+					"not readable or writable");
+			throw new IllegalArgumentException();
+			
+		}
+		
+		Analyzer analyzer = new StandardAnalyzer();
+		Directory indexDestDir = FSDirectory.open(Paths.get(destPath));
+		IndexWriterConfig config = new IndexWriterConfig(analyzer);
+		switch (model) {
+		case BM25_PROBABILITY: config.setSimilarity(new BM25Similarity());
+		default: config.setSimilarity(new ClassicSimilarity()); }
+		IndexWriter indexWriter = new IndexWriter(indexDestDir,config);
+		makingDocs(indexWriter,docsFilePath);
+	}
+	
+	/* Dopo la creazione e l'uso, si consiglia di vedere il risultato */
+	public String getIndexingResult() {
+		return result;
+	}
+	
+	/* I Documenti di SMART non sono sempre perfetti, contengono errori,
+	 * ripetizioni, mancanze, delimitatori non ben definiti, pertanto
+	 * l'algoritmo seguente si complica nel seguente modo:
+	 * Si ha come delimitatore il pattern .(A|T|W|I)
+	 * Inoltre ad ogni passo, cerco il delimitatore, e lo esamino,
+	 * confronto la sua tipologia, e lo assegno ai vari campi dei documenti
+	 * in base al campo ritrovato.
+	 * Quello che accade è che se manca Author tra contenuto e titolo
+	 * i documenti vengono creati comunque ma con Author vuoto.
+	 * La numerazione invece è fatta da sè a causa del UTF-8 BOM.
+	 */
+	private void makingDocs(final IndexWriter iw, final String docsFilePath) 
+			throws IOException {
+		
+		/* L'indexing seguente funziona nel caso i file contenenti
+		 * i dati del benchmark siano ordinati correttamente senza 
+		 * ripetizione di delimitatori, in caso contrario si avranno
+		 * errori in lettura */
+		Scanner scan;
+		scan = new Scanner(new File(docsFilePath));
+		Pattern delimiter = Pattern.compile("\\p{IsPunctuation}(I|T|W|A)");
+		scan.useDelimiter(delimiter);
+		int idCounter = 1;
+		while (scan.hasNextLine()) {
+			Document newDoc = new Document();
+			
+			String title = "";
+			String author = "";
+			String content = "";
+			String delimiterStr = scan.findInLine(delimiter);
+			while (!delimiterStr.equals(".W")) {
+				// WARNING: per problemi causati dal utf-8 BOM si fa una numerazione
+				// artigianale dei documenti, in quanto non e' possibile fare
+				// Integer.parseInt ai valori, nel caso di estreme incongruenze
+				// può valer la pena controllare non vi siano refusi nei documenti
+				// che sommati a questa numerazione artigianale diano luogo
+				// a ranking completamente diverse da quelle di riferimento
+				if (delimiterStr.equals(".I")) {
+					scan.next();
+				} if (delimiterStr.equals(".T")) {
+					title = scan.next();
+				} if (delimiterStr.equals(".A")) {
+					author = scan.next();
+				}
+				delimiterStr = scan.findInLine(delimiter);
+			}
+			content = scan.next();
+			
+			Integer idCountInteger = idCounter;
+			
+			// Problema nell'ID point
+			newDoc.add(new StringField(DocFields.id.toString(),
+						idCountInteger.toString(),Field.Store.YES));
+			newDoc.add(new StringField(DocFields.title.toString(),
+							title,Field.Store.YES));
+			newDoc.add(new StringField(DocFields.author.toString(),
+							author,Field.Store.YES));
+			newDoc.add(new TextField(DocFields.content.toString(),
+						content,Field.Store.YES));
+			idCounter++;
+			
+			System.out.println("id:"+newDoc.get(DocFields.id.toString()));
+			System.out.println("author:"+newDoc.get(DocFields.author.toString()));
+			System.out.println("title:"+newDoc.get(DocFields.title.toString()));
+			System.out.println("content"+newDoc.get(DocFields.content.toString()));
+			
+			iw.addDocument(newDoc);
+		}
+		iw.close();
+		scan.close();
+	}
+}
