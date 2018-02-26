@@ -1,0 +1,266 @@
+package LuceneIndexing;
+
+import java.io.IOException;
+import java.nio.file.Paths;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.FuzzyQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.spans.SpanMultiTermQueryWrapper;
+import org.apache.lucene.search.spans.SpanNearQuery;
+import org.apache.lucene.search.spans.SpanQuery;
+import org.apache.lucene.search.spell.LuceneDictionary;
+import org.apache.lucene.search.spell.SpellChecker;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+
+/* Classe addetta alla ricerca/query dei file indicizzati
+ * si definisce Index"Explorer" solo per differenziarsi da IndexSearcher
+ */
+
+/** Implements IndexSearcher and 
+ */
+public class IndexExplorer {
+	
+	public static final int SHOWPAGES = 5;
+	public static final int HITSPERPAGE = 5;
+	
+	private TopDocs results;
+	private ScoreDoc[] hits;
+	private int totalHits;
+	private Document[] resultDoc;
+	private int page; // pagina di riferimento di tali risultati
+	
+	// Hit sotto la quale si sospetta si necessiti di un alternativa
+	private final static int ALTERN_TRESHOLD = 2;
+	private final static int MAX_ALTERN = 5;
+	
+	// error state result
+	private boolean success;
+	private String errorString;
+	private String successString;
+	
+	private IndexReader reader;
+	private IndexSearcher searcher;
+	private Analyzer analyzer;
+	private QueryParser parser;
+	
+	/* Risponde alla query cercando nell'indice alla directory indicata
+	 * e col modelo specificato  */
+	@SuppressWarnings("unused")
+	private IndexExplorer() {}
+	/**
+	 * Main searching class
+	 * @param queryString, query string
+	 * @param searchIndexPath, index path
+	 * @param model, similarity model adopted
+	 * @param tolerantMode, tolerant mode that will be activated
+	 * @param field, document field
+	 * @throws Exception
+	 */
+	public IndexExplorer(String queryString, String searchIndexPath, ModelsID model, 
+			TolerantID tolerantMode,DocFields field) throws Exception {
+		if (queryString == null || searchIndexPath == null ||
+			queryString.equals(searchIndexPath)) {
+			System.err.println("In IndexExplorer each field must be specified");
+			throw new IllegalArgumentException();
+		}
+
+		Directory indexDir = FSDirectory.open(Paths.get(searchIndexPath));
+		reader = DirectoryReader.open(indexDir);
+		searcher = new IndexSearcher(reader);	
+		switch(model) { // configuring searcher
+		case BOOLEAN:
+			searcher.setSimilarity(new BooleanSimilarity()); break;
+		case BM25_PROBABILITY: 
+			searcher.setSimilarity(new BM25Similarity()); break;
+		default: searcher.setSimilarity(new ClassicSimilarity());
+		}
+		
+		// configuring query parser and analyzer
+		analyzer = new StandardAnalyzer();
+		parser = new QueryParser(field.toString(),analyzer);
+		if (tolerantMode == TolerantID.POSTFIX)
+			parser.setAllowLeadingWildcard(true);
+		
+		// if error is encountered, success will be false and error string
+		// will be valid
+		success = true;
+		errorString = ""; 
+		successString = "";
+		
+		// result page will start from 0
+		page = 0;
+		
+		// handling fuzzy queries
+		Query query;
+		String term = queryString;
+		// forbid postfix if Tolerant Mode PostFix is not set
+		if ((queryString.charAt(0) == '*') 
+				&& (tolerantMode != TolerantID.POSTFIX)) {
+			success = false;
+			errorString = "Tolerant Mode POSTFIX must be set";
+			return;
+		}
+			
+		// Nel caso di un termine fuzzy è più semplice
+		if (tolerantMode == TolerantID.FUZZY) {
+			query = new FuzzyQuery(new Term(field.toString(),queryString));
+		} else { // prefix query
+			query = parser.parse(queryString);
+		}
+		
+		System.out.println("Searching for: "+query.toString(field.toString()));
+		results = searcher.search(query, SHOWPAGES*HITSPERPAGE);
+		hits = results.scoreDocs;
+		totalHits = Math.toIntExact(results.totalHits);
+		System.out.println("TotalHits:"+totalHits);
+		System.out.println("Hits len:"+hits.length);
+		
+		// handling alternatives
+		String[] tokens = term.split(" ");
+		if (totalHits < ALTERN_TRESHOLD && tolerantMode == TolerantID.ALTERN) {
+			SpellChecker spell = new SpellChecker(indexDir);
+			IndexWriterConfig iwc = new IndexWriterConfig();
+			spell.indexDictionary(
+					new LuceneDictionary(reader,DocFields.content.toString()),
+					iwc, false);
+			successString += "Suggested terms:" + System.getProperty("line.separator");
+			for (int i = 0 ; i < tokens.length ; i++) {
+				String[] similar = spell.suggestSimilar(tokens[i],MAX_ALTERN);
+				if (similar == null || similar.length == 0) {
+					successString += "No Suggestions for term "+ tokens[i] 
+								+ System.getProperty("line.separator");
+				} else {
+					for (int j = 0 ; j < similar.length ; j++)
+						successString += similar[j] + " ";
+					successString += System.getProperty("line.separator");
+				}
+			}
+			spell.close();
+		}
+
+		// storing in result doc
+		System.out.println("Printing results...");
+		resultDoc = new Document[hits.length];
+		for (int i = 0 ; i < hits.length ; i++) {
+			resultDoc[i] = searcher.doc(hits[i].doc);
+		}
+	}
+	
+	/** Get query result as a string */
+	public String getTextResult() throws IOException {
+		if (success) 
+			return getTextSuccessfullResult();
+		else 
+			return errorString;
+	}
+	
+	/** Get query result as a array of relevant document id
+	 * @return relevant docs id
+	 * @throws IOException
+	 */
+	public int[] getIDFormatResult() throws IOException {
+		int[] topRelevant = new int[totalHits];
+		
+		for (int i = 0 ; i < totalHits ; i++) {
+			Document doc;
+			doc = getResultDocument(i);
+			if (doc == null) {
+				System.err.println("IndexExplorer returned null document");
+				break;
+			}
+			Integer rankPosition = i+1;
+			String rankRecord = rankPosition.toString() + ". " ;
+			rankRecord += "Id:"+doc.get(DocFields.id.toString())
+				+System.getProperty("line.separator");
+			rankRecord += "Title:"+doc.get(DocFields.title.toString());
+			String author = doc.get(DocFields.author.toString());
+			if (author.equals("")) // estetico
+				author = System.getProperty("line.separator");
+			rankRecord += "Author:"+author;
+			rankRecord += System.getProperty("line.separator");
+			successString += rankRecord;
+		}
+		return successString;
+	}
+	
+	/** Set next page, to check its effect invoke getResult 
+	 * @return false if operation is not permitted */
+	public boolean nextPage() {
+		successString = ""; // refresh
+		if (success && (page+1) < getNumPage()) {
+			page++;
+			return true;
+		}
+		return false ;
+	}
+	/** Set previous page, getResult is suggested after this operation 
+	 * @return false if operation is not permitted */ 
+	public boolean previousPage() {
+		successString = "";
+		if (success && page > 0) {
+			page--;
+			return true;
+		}
+		return false;
+	}
+	
+	// Get number of result pages
+	private int getNumPage() { 
+		if (hits.length == 0) return 1;
+		if (hits.length%HITSPERPAGE == 0) return hits.length/HITSPERPAGE;
+		else return hits.length/HITSPERPAGE+1;
+	}
+	
+	private Document getResultDocument(int position) throws IOException {
+		if (position < 0 || position >= totalHits)
+			return null;
+			
+		return resultDoc[position];
+	}
+	
+	/** Get search result string */
+	private String getTextSuccessfullResult() throws IOException {
+		String header = "Total hits: "+totalHits
+				+" Retrieved Docs: "+hits.length
+				+" Page "+(page+1)+"/"+getNumPage()+System.getProperty("line.separator");
+		successString += header;
+		int maxPosition = hits.length;
+		int offset = page*IndexExplorer.HITSPERPAGE;
+		for (int i = offset ; i < offset+IndexExplorer.HITSPERPAGE
+				&& i < maxPosition ; i++) {
+			Document doc;
+			doc = getResultDocument(i);
+			if (doc == null) {
+				System.err.println("IndexExplorer returned null document");
+				break;
+			}
+			Integer rankPosition = i+1;
+			String rankRecord = rankPosition.toString() + ". " ;
+			rankRecord += "Id:"+doc.get(DocFields.id.toString())
+				+System.getProperty("line.separator");
+			rankRecord += "Title:"+doc.get(DocFields.title.toString());
+			String author = doc.get(DocFields.author.toString());
+			if (author.equals("")) // estetico
+				author = System.getProperty("line.separator");
+			rankRecord += "Author:"+author;
+			rankRecord += System.getProperty("line.separator");
+			successString += rankRecord;
+		}
+		return successString;
+	}
+}

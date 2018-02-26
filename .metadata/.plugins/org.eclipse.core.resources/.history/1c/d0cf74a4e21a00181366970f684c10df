@@ -1,0 +1,68 @@
+package utils;
+
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+
+/** Class that get all files that match a given pattern 
+ * in the specified directory source
+ */
+public class Finder extends SimpleFileVisitor<Path> {
+
+	private PathMatcher matcher;
+	private String totalResults;
+	
+	/** 
+	 * @param pattern, pattern to be matched
+	 */
+	public Finder(String pattern) {
+		matcher = FileSystems.getDefault()
+                .getPathMatcher("glob:" + pattern);
+		totalResults = "";
+	}
+	
+	 // Compares the glob pattern against
+    // the file or directory name.
+    private void find(Path file) {
+        Path name = file.getFileName();
+        if (name != null && matcher.matches(name)) {
+            totalResults += file.toString();
+            System.out.println(file);
+        }
+    }
+	
+	@Override
+    public FileVisitResult visitFile(Path file,
+            BasicFileAttributes attrs) {
+        find(file);
+        return FileVisitResult.CONTINUE;
+    }
+
+    // Invoke the pattern matching
+    // method on each directory.
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir,
+            BasicFileAttributes attrs) {
+        find(dir);
+        return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFileFailed(Path file,
+            IOException exc) {
+        System.err.println(exc);
+        return FileVisitResult.CONTINUE;
+    }
+    
+    /** Get finder result
+     * @return return "" if no file matching
+     */
+    public String[] getResults() {
+    	return totalResults.split(" ");
+    }
+}
+

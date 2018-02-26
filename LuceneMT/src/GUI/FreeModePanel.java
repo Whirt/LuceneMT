@@ -52,13 +52,11 @@ public class FreeModePanel extends JPanel implements ActionListener {
 	private static final int TEXT_AREA_ROW = 28;
 	private static final int TEXT_AREA_COLUMN = 61;
 	
-	private JLabel queryLb,indexSearchPathLb,indexWritePathLb,newIndexDestPathLb;
 	private JTextField queryTxtFld,searchIndexPathTxt,indexedPath,newIndexDestTxt;
 	private JButton queryBtn,searchIndexBtn,indexedBtn, newIndexDestBtn;
 	private JButton createIndexBtn;
 	private JFileChooser searchIndexFc, indexedFc, newIndexDestFc;
-	
-	private JLabel modelWriteSimilLb, modelSearchSimilLb, tolerantLb;
+
 	private JComboBox modelWriteSimilCB,modelSearchSimilCB,
 				tolerantCB,fieldCB,benchMarkCB;
 	
@@ -73,19 +71,18 @@ public class FreeModePanel extends JPanel implements ActionListener {
 	// Retrieved Doc
 	private IndexExplorer ie;
 	
-	/** Class containing button and labels for free model
-	 */
+	/** Class containing button and labels for free model */
 	public FreeModePanel() {
 		super();
 		
 		// Labels
-		queryLb = new JLabel("->");
-		indexSearchPathLb = new JLabel("IndexSearch path: ");
-		indexWritePathLb = new JLabel("IndexWrite path: ");
-		newIndexDestPathLb = new JLabel("Index Destination: ");
-		modelWriteSimilLb = new JLabel("Write Sim. & bench");
-		modelSearchSimilLb = new JLabel("Search Sim.");
-		tolerantLb = new JLabel("Tolerant disable:");
+		JLabel queryLb = new JLabel("->");
+		JLabel indexSearchPathLb = new JLabel("IndexSearch path: ");
+		JLabel indexWritePathLb = new JLabel("IndexWrite path: ");
+		JLabel newIndexDestPathLb = new JLabel("Index Destination: ");
+		JLabel modelWriteSimilLb = new JLabel("Write Sim. & bench");
+		JLabel modelSearchSimilLb = new JLabel("Search Sim.");
+		JLabel tolerantLb = new JLabel("Tolerant disable:");
 		queryLb.setBackground(BACKGROUND_COLOR);
 		indexSearchPathLb.setBackground(BACKGROUND_COLOR);
 		indexWritePathLb.setBackground(BACKGROUND_COLOR);
@@ -188,8 +185,8 @@ public class FreeModePanel extends JPanel implements ActionListener {
 						(TolerantID)tolerantCB.getSelectedItem(),
 						(DocFields)fieldCB.getSelectedItem());
 				resultArea.append("Done"+System.getProperty("line.separator"));
-				resultArea.setText(ie.getResult());	
-			} catch (Exception e1) {
+				resultArea.setText(ie.getTextResult());	
+			} catch (Exception error) {
 				System.err.println("Error during searching phase");
 			}
 		} if (source == searchIndexBtn) {
@@ -224,11 +221,19 @@ public class FreeModePanel extends JPanel implements ActionListener {
 		} if (source == nextBtn && ie != null) {
 			resultArea.setText(null);
 			ie.nextPage();
-			resultArea.setText(ie.getResult());	
+			try { resultArea.setText(ie.getTextResult());
+			} catch (IOException error) { 
+				System.err.println("During occurred by retriving result string");
+				error.printStackTrace();
+			}
 		} if (source == prevBtn && ie != null) {
 			resultArea.setText(null);
 			ie.previousPage();
-			resultArea.setText(ie.getResult());	
+			try { resultArea.setText(ie.getTextResult());
+			} catch (IOException error) { 
+				System.err.println("During occurred by retriving result string");
+				error.printStackTrace();
+			}
 		}
 		
 	}

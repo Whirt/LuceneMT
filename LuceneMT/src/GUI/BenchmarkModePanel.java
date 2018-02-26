@@ -9,6 +9,8 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -20,12 +22,14 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import BenchMarking.BenchMarkID;
+import BenchMarking.SmartBCM;
+import LuceneIndexing.DocFields;
+import LuceneIndexing.ModelsID;
+import LuceneIndexing.TolerantID;
 
-/** La classe fornisce la possibilita' di elencare tutte le query di un
- * benchmark e di mostrare quanti documenti rilevanti sono stati trovati
- * per ciascuna query del benchmark
+/** Benchmark mode panel which provides basic user interfaces with some
+ * getter and setter button, label and text area.
  */
-
 public class BenchmarkModePanel extends JPanel implements ActionListener {
 	private static final long serialVersionUID = 8377960691553435443L;
 
@@ -38,72 +42,97 @@ public class BenchmarkModePanel extends JPanel implements ActionListener {
 	private static final int LOGO_HEIGHT = 50;
 	
 	private static final int MAX_PATH_LEN = 40;
+	private static final int NUM_QUERY_LEN = 4;
 	
-	//private static final int QUERY_AREA_ROW = 5;
-	//private static final int QUERY_AREA_COLUMN = 51;
-	private static final int RESULT_AREA_ROW = 29;
+	private static final int QUERY_AREA_ROW = 5;
+	private static final int QUERY_AREA_COLUMN = 51;
+	private static final int RESULT_AREA_ROW = 23;
 	private static final int RESULT_AREA_COLUMN = 61;
 	
-	/* Permette di eseguire i primi X0 query, la selezione
-	 * di una query per utilizzarla è solo per fare test,
-	 * questa interfaccia è più finalizzata ad automatizzare
-	 * il processo di valutazione */
+	/* Permette di eseguire i primi X0 query */
 	private static final int MAX_NUM_QUERY = 50;
 	
-	private JLabel queryLb,benchPathLb,indexedPathLb, benchMarkLb;
-	private JTextField benchPathTxt,indexPathTxt;
-	private JButton loadBtn,benchFcBtn,indexFcBtn;
+	private JTextArea queryArea;
+	private JComboBox<Integer> queryNumCB;
+	private JTextField benchPathTxt,indexPathTxt, numQueriesTxt;
+	private JButton loadBtn,benchFcBtn,indexFcBtn, oneQueryBtn, allQueryBtn;
 	private JFileChooser benchFc, indexFc;
 	private JComboBox<BenchMarkID> benchMarkCB;
+	private JComboBox<ModelsID> modelCB;
+	private JComboBox<TolerantID> tolerantCB;
+	private JComboBox<DocFields> fieldCB;
 	private JTextArea resultArea;
-	//private JTextArea queryArea;
-	//private JComboBox<Integer> queryNumCB;
-	/* E' piu' opportuno un JTextArea in cui si lascia scegliere il numero
-	 * di query e in base al numero selezionato appare la query  */
 	
-	/**
-	 * 
-	 */
+	private SmartBCM smrt;
+	private boolean benchMarkLoaded;
+	
+	/** Benchmark mode panel contains buttons interactive and area. */
 	public BenchmarkModePanel() {
 		super();
 		
-		//queryLb = new JLabel("Query:");
-		benchPathLb = new JLabel("Benchmark path:");
-		indexedPathLb = new JLabel("Index path:");
-		benchMarkLb = new JLabel("Select Benchmark: ");
-		//queryLb.setBackground(BACKGROUND_COLOR);
+		smrt = null;
+		benchMarkLoaded = false;
+		
+		JLabel queryLb = new JLabel("Query:");
+		queryLb.setBackground(BACKGROUND_COLOR);
+		queryLb.setForeground(Color.WHITE);
+		JLabel benchPathLb = new JLabel("Benchmark path:");
 		benchPathLb.setBackground(BACKGROUND_COLOR);
-		indexedPathLb.setBackground(BACKGROUND_COLOR);
-		benchMarkLb.setBackground(BACKGROUND_COLOR);
-		//queryLb.setForeground(Color.WHITE);
 		benchPathLb.setForeground(Color.WHITE);
+		JLabel indexedPathLb = new JLabel("Index path:");
+		indexedPathLb.setBackground(BACKGROUND_COLOR);
 		indexedPathLb.setForeground(Color.WHITE);
+		JLabel benchMarkLb = new JLabel("Benchmark: ");
+		benchMarkLb.setBackground(BACKGROUND_COLOR);
 		benchMarkLb.setForeground(Color.WHITE);
-		//queryNumCB = new JComboBox<Integer>();
-		//for (int i = 1 ; i < MAX_NUM_QUERY+1 ; i++)
-		//	queryNumCB.addItem(new Integer(i));
+		JLabel modelLb = new JLabel("Model:");
+		modelLb.setBackground(BACKGROUND_COLOR);
+		modelLb.setForeground(Color.WHITE);
+		JLabel tolerantLb = new JLabel("Tolerant mode: ");
+		tolerantLb.setBackground(BACKGROUND_COLOR);
+		tolerantLb.setForeground(Color.WHITE);
+		JLabel fieldLb = new JLabel("Field: ");
+		fieldLb.setBackground(BACKGROUND_COLOR);
+		fieldLb.setForeground(Color.WHITE);
+		JLabel numQueriesLb = new JLabel("Num queries found:");
+		numQueriesLb.setBackground(BACKGROUND_COLOR);
+		numQueriesLb.setForeground(Color.WHITE);
+		
+		queryNumCB = new JComboBox<Integer>();
+		for (int i = 1 ; i < MAX_NUM_QUERY+1 ; i++)
+			queryNumCB.addItem(new Integer(i));
+		queryNumCB.addActionListener(this);
 		
 		benchMarkCB = new JComboBox<BenchMarkID>(BenchMarkID.values());
+		modelCB = new JComboBox<ModelsID>(ModelsID.values());
+		tolerantCB = new JComboBox<TolerantID>(TolerantID.values());
+		fieldCB = new JComboBox<DocFields>(DocFields.values());
 		
-		//queryArea = new JTextArea(QUERY_AREA_ROW,QUERY_AREA_COLUMN);
+		queryArea = new JTextArea(QUERY_AREA_ROW,QUERY_AREA_COLUMN);
+		JScrollPane scrollQuery = new JScrollPane(queryArea);
+		scrollQuery.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		queryArea.setEditable(false);
 		resultArea = new JTextArea(RESULT_AREA_ROW,RESULT_AREA_COLUMN);
-		//queryArea.setEditable(false);
-		resultArea.setEditable(false);
-		//JScrollPane scrollQuery = new JScrollPane(queryArea);
-		//scrollQuery.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		JScrollPane scrollResult = new JScrollPane(resultArea);
 		scrollResult.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		
+		resultArea.setEditable(false);
+	
 		benchPathTxt = new JTextField("",MAX_PATH_LEN);
 		benchPathTxt.setEditable(false);
 		indexPathTxt = new JTextField("",MAX_PATH_LEN);
 		indexPathTxt.setEditable(false);
+		numQueriesTxt = new JTextField("",NUM_QUERY_LEN);
+		numQueriesTxt.setEditable(false);
 		loadBtn = new JButton("Load benchmark");
 		loadBtn.addActionListener(this);
 		benchFcBtn = new JButton("Choose");
 		benchFcBtn.addActionListener(this);
 		indexFcBtn = new JButton("Choose");
 		indexFcBtn.addActionListener(this);
+		oneQueryBtn = new JButton("Query");
+		oneQueryBtn.addActionListener(this);
+		allQueryBtn = new JButton("Evaluate all benchmark");
+		allQueryBtn.addActionListener(this);
 		
 		benchFc = new JFileChooser("./");
 		indexFc = new JFileChooser("./");
@@ -115,10 +144,15 @@ public class BenchmarkModePanel extends JPanel implements ActionListener {
 		indexFc.setAcceptAllFileFilterUsed(false);
 		
 		setLayout(new FlowLayout(FlowLayout.TRAILING));
-		//add(queryLb); add(queryNumCB); add(scrollQuery);
+		add(queryLb); add(queryNumCB); add(scrollQuery);
 		add(benchPathLb); add(benchPathTxt); add(benchFcBtn);
 		add(indexedPathLb); add(indexPathTxt); add(indexFcBtn);
-		add(benchMarkLb); add(benchMarkCB); add(loadBtn); add(scrollResult);
+		add(tolerantLb); add(tolerantCB); add(modelLb); add(modelCB);
+		add(fieldLb); add(fieldCB);
+		add(benchMarkLb); add(benchMarkCB); 
+		add(numQueriesLb); add(numQueriesTxt); add(loadBtn);
+		add(oneQueryBtn); add(allQueryBtn);
+		add(scrollResult);
 	}
 
 	@Override
@@ -137,7 +171,32 @@ public class BenchmarkModePanel extends JPanel implements ActionListener {
 		} if (source == loadBtn && 
 				!(benchPathTxt.getText().equals("") || 
 				  indexPathTxt.getText().equals(""))) {
+			try {
+				smrt = new SmartBCM(benchPathTxt.getText(), indexPathTxt.getText());
+				numQueriesTxt.setText(smrt.getNumQueries()+"");
+				benchMarkLoaded = true;
+				queryArea.setText(smrt.getQuery((int)queryNumCB.getSelectedItem()));
+			} catch (IOException excep) {
+				System.err.println("Error occurred during smart benchmark init");
+				excep.printStackTrace();
+			}
 			resultArea.setText("Testing and producing results...");
+			
+		} if (benchMarkLoaded && source == queryNumCB) {
+			queryArea.setText(smrt.getQuery((int)queryNumCB.getSelectedItem()));
+		} if (benchMarkLoaded && source == oneQueryBtn) {
+			try {
+				smrt.getTextNaturalPrecisionRecallEvaluation(
+						(int)queryNumCB.getSelectedItem(),
+						(ModelsID)modelCB.getSelectedItem(), 
+						(TolerantID)tolerantCB.getSelectedItem(), 
+						(DocFields)fieldCB.getSelectedItem());
+			} catch (Exception e1) {
+				System.err.println("Error occured during precision recall evaluation");
+				e1.printStackTrace();
+			}
+		} if (benchMarkLoaded && source == allQueryBtn) {
+			
 		}
 		
 	}

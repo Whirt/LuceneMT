@@ -17,6 +17,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.spans.SpanMultiTermQueryWrapper;
 import org.apache.lucene.search.spans.SpanNearQuery;
@@ -52,9 +53,6 @@ public class IndexExplorer {
 	private String errorString;
 	private String successString;
 	
-	// Spelling check
-	private SpellChecker spell;
-	
 	private IndexReader reader;
 	private IndexSearcher searcher;
 	private Analyzer analyzer;
@@ -64,6 +62,15 @@ public class IndexExplorer {
 	 * e col modelo specificato  */
 	@SuppressWarnings("unused")
 	private IndexExplorer() {}
+	/**
+	 * Main searching class
+	 * @param queryString, query string
+	 * @param searchIndexPath, index path
+	 * @param model, similarity model adopted
+	 * @param tolerantMode, tolerant mode that will be activated
+	 * @param field, document field
+	 * @throws Exception
+	 */
 	public IndexExplorer(String queryString, String searchIndexPath, ModelsID model, 
 			TolerantID tolerantMode,DocFields field) throws Exception {
 		if (queryString == null || searchIndexPath == null ||
@@ -74,10 +81,10 @@ public class IndexExplorer {
 
 		Directory indexDir = FSDirectory.open(Paths.get(searchIndexPath));
 		reader = DirectoryReader.open(indexDir);
-		searcher = new IndexSearcher(reader);
-		
-		// configuring model
-		switch(model) {
+		searcher = new IndexSearcher(reader);	
+		switch(model) { // configuring searcher
+		case BOOLEAN:
+			searcher.setSimilarity(new BooleanSimilarity()); break;
 		case BM25_PROBABILITY: 
 			searcher.setSimilarity(new BM25Similarity()); break;
 		default: searcher.setSimilarity(new ClassicSimilarity());
@@ -133,9 +140,6 @@ public class IndexExplorer {
 					iwc, false);
 			successString += "Suggested terms:" + System.getProperty("line.separator");
 			for (int i = 0 ; i < tokens.length ; i++) {
-				// le guide informano di sceglierne almeno 5
-				// per aver dei buoni suggerimenti, tuttavia è ad uso
-				// dimostrativo, quindi ne lascio 1
 				String[] similar = spell.suggestSimilar(tokens[i],MAX_ALTERN);
 				if (similar == null || similar.length == 0) {
 					successString += "No Suggestions for term "+ tokens[i] 
@@ -155,25 +159,33 @@ public class IndexExplorer {
 		for (int i = 0 ; i < hits.length ; i++) {
 			resultDoc[i] = searcher.doc(hits[i].doc);
 		}
-		
-		/* Se è attivo la spellCheck si crea una lista 
-		 * di alternative per ogni index term nella query, per ogni token
-		 * si offre un suggerimento */
-		//if (tolerantMode == TolerantID.SPELLCHECK) {
-		//	sug = spell.suggestSimilar("computre",1);
-		//	for (int i = 0 ; i < sug.length ; i++) {
-		//		System.out.println("Suggerimenti:" + sug[i]);
-		//	}
-		//	System.out.println("Done");
-		//}
 	}
 	
-	/** Get query result */
-	public String getResult() {
+	/** Get query result as a string */
+	public String getTextResult() throws IOException {
 		if (success) 
-			return getSuccessfullResult();
+			return getTextSuccessfullResult();
 		else 
 			return errorString;
+	}
+	
+	/** Get query result as a array of relevant document id
+	 * @return relevant docs id
+	 * @throws IOException
+	 */
+	public int[] getResultIDArray() throws IOException {
+		int[] topDocID = new int[hits.length];
+		
+		for (int i = 0 ; i < hits.length ; i++) {
+			Document doc;
+			doc = getResultDocument(i);
+			if (doc == null) {
+				System.err.println("IndexExplorer returned null document");
+				break;
+			}
+			topDocID[i] = Integer.parseInt(doc.get(DocFields.id.toString()));
+		}
+		return topDocID;
 	}
 	
 	/** Set next page, to check its effect invoke getResult 
@@ -197,53 +209,47 @@ public class IndexExplorer {
 		return false;
 	}
 	
-	// getters
-	/** Get number of result pages */
+	// Get number of result pages
 	private int getNumPage() { 
 		if (hits.length == 0) return 1;
 		if (hits.length%HITSPERPAGE == 0) return hits.length/HITSPERPAGE;
 		else return hits.length/HITSPERPAGE+1;
 	}
 	
-	private Document getDocument(int position) throws IOException {
+	private Document getResultDocument(int position) throws IllegalArgumentException {
 		if (position < 0 || position >= totalHits)
-			return null;
+			new IllegalArgumentException();
 			
 		return resultDoc[position];
 	}
-
+	
 	/** Get search result string */
-	private String getSuccessfullResult() {
+	private String getTextSuccessfullResult() throws IOException {
 		String header = "Total hits: "+totalHits
 				+" Retrieved Docs: "+hits.length
 				+" Page "+(page+1)+"/"+getNumPage()+System.getProperty("line.separator");
 		successString += header;
 		int maxPosition = hits.length;
 		int offset = page*IndexExplorer.HITSPERPAGE;
-		try {
-			for (int i = offset ; i < offset+IndexExplorer.HITSPERPAGE
-					&& i < maxPosition ; i++) {
-				Document doc;
-				doc = getDocument(i);
-				if (doc == null) {
-					System.err.println("IndexExplorer returned null document");
-					break;
-				}
-				Integer rankPosition = i+1;
-				String rankRecord = rankPosition.toString() + ". " ;
-				rankRecord += "Id:"+doc.get(DocFields.id.toString())
-					+System.getProperty("line.separator");
-				rankRecord += "Title:"+doc.get(DocFields.title.toString());
-				String author = doc.get(DocFields.author.toString());
-				if (author.equals("")) // estetico
-					author = System.getProperty("line.separator");
-				rankRecord += "Author:"+author;
-				rankRecord += System.getProperty("line.separator");
-				successString += rankRecord;
+		for (int i = offset ; i < offset+IndexExplorer.HITSPERPAGE
+				&& i < maxPosition ; i++) {
+			Document doc;
+			doc = getResultDocument(i);
+			if (doc == null) {
+				System.err.println("IndexExplorer returned null document");
+				break;
 			}
-		} catch (IOException e) {
-			System.err.println("Error during document listing");
-			e.printStackTrace();
+			Integer rankPosition = i+1;
+			String rankRecord = rankPosition.toString() + ". " ;
+			rankRecord += "Id:"+doc.get(DocFields.id.toString())
+				+System.getProperty("line.separator");
+			rankRecord += "Title:"+doc.get(DocFields.title.toString());
+			String author = doc.get(DocFields.author.toString());
+			if (author.equals("")) // estetico
+				author = System.getProperty("line.separator");
+			rankRecord += "Author:"+author;
+			rankRecord += System.getProperty("line.separator");
+			successString += rankRecord;
 		}
 		return successString;
 	}

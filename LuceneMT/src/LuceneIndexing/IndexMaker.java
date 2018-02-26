@@ -16,7 +16,9 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.DFRSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -55,7 +57,6 @@ public class IndexMaker {
 					+destPath+"\n"+"may not exist or respectively "+
 					"not readable or writable");
 			throw new IllegalArgumentException();
-			
 		}
 		
 		Analyzer analyzer = new StandardAnalyzer();
@@ -64,8 +65,13 @@ public class IndexMaker {
 		// delete old index
 		config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 		switch (model) {
-		case BM25_PROBABILITY: config.setSimilarity(new BM25Similarity()); break;
-		default: config.setSimilarity(new ClassicSimilarity()); }
+		case BOOLEAN: 
+			config.setSimilarity(new BooleanSimilarity()); break;
+		case BM25_PROBABILITY: 
+			config.setSimilarity(new BM25Similarity()); break;
+		default: 
+			config.setSimilarity(new ClassicSimilarity()); 
+		}
 		IndexWriter indexWriter = new IndexWriter(indexDestDir,config);
 		
 		switch(bench) {
@@ -98,7 +104,7 @@ public class IndexMaker {
 		 * errori in lettura */
 		Scanner scan;
 		scan = new Scanner(new File(docsFilePath));
-		Pattern delimiter = Pattern.compile("\\p{IsPunctuation}(I|T|W|A)");
+		Pattern delimiter = Pattern.compile("\\p{IsPunctuation}(I|T|W|A|X)");
 		scan.useDelimiter(delimiter);
 		int idCounter = 1;
 		while (scan.hasNextLine()) {

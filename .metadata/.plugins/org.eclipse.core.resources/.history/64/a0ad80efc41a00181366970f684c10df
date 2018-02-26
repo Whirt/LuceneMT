@@ -1,0 +1,43 @@
+package utils;
+
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.util.regex.Pattern;
+
+/** Class that get all files that match a given pattern 
+ * in the specified directory
+ */
+public class Finder extends SimpleFileVisitor<Path> {
+
+	private Finder() {}
+	
+	public static String[] searchFile(Path path, Pattern pattern) {
+		
+		
+		return results;
+	}
+	
+	@Override
+    public FileVisitResult visitFile(Path file,
+            BasicFileAttributes attrs) {
+        find(file);
+        return CONTINUE;
+    }
+
+    // Invoke the pattern matching
+    // method on each directory.
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir,
+            BasicFileAttributes attrs) {
+        find(dir);
+        return CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult visitFileFailed(Path file,
+            IOException exc) {
+        System.err.println(exc);
+        return CONTINUE;
+    }
+}
+

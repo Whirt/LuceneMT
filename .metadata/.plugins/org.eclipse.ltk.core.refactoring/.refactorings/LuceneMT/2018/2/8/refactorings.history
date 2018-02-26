@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;LuceneMT/indexes/SMART/ADI&apos; to &apos;ADI_VSM&apos;" description="Rename resource &apos;ADI&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="indexes/SMART/ADI" name="ADI_VSM" stamp="1519591513825" updateReferences="true"/>
+</session>
