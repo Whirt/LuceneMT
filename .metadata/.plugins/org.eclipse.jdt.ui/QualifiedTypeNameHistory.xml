@@ -34,4 +34,7 @@
 <fullyQualifiedTypeName name="BenchMarking.BenchMarkID"/>
 <fullyQualifiedTypeName name="LuceneIndexing.DocFields"/>
 <fullyQualifiedTypeName name="LuceneIndexing.IndexExplorer"/>
+<fullyQualifiedTypeName name="org.jfree.chart.plot.XYPlot"/>
+<fullyQualifiedTypeName name="org.jfree.chart.JFreeChart"/>
+<fullyQualifiedTypeName name="org.jfree.chart.ChartPanel"/>
 </qualifiedTypeNameHistroy>

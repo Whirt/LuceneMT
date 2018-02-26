@@ -1,0 +1,238 @@
+package GUI;
+
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+
+import BenchMarking.BenchMarkID;
+import BenchMarking.SmartBCM;
+import LuceneIndexing.DocFields;
+import LuceneIndexing.ModelsID;
+import LuceneIndexing.TolerantID;
+
+/** Benchmark mode panel which provides basic user interfaces with some
+ * getter and setter button, label and text area.
+ */
+public class BenchmarkModePanel extends JPanel implements ActionListener {
+	private static final long serialVersionUID = 8377960691553435443L;
+
+	private static final Color BACKGROUND_COLOR = new Color(117,219,144);
+	
+	private Image logo ;
+	private static final int LOGO_OFFSET_X = 80;
+	private static final int LOGO_INVERSE_OFFSET_Y = 70;
+	private static final int LOGO_WIDTH = 280;
+	private static final int LOGO_HEIGHT = 50;
+	
+	private static final int MAX_PATH_LEN = 40;
+	private static final int NUM_QUERY_LEN = 4;
+	
+	private static final int QUERY_AREA_ROW = 5;
+	private static final int QUERY_AREA_COLUMN = 51;
+	private static final int RESULT_AREA_ROW = 23;
+	private static final int RESULT_AREA_COLUMN = 61;
+	
+	/* Permette di eseguire i primi X0 query */
+	private static final int MAX_NUM_QUERY = 50;
+	
+	private JTextArea queryArea;
+	private JComboBox<Integer> queryNumCB;
+	private JTextField benchPathTxt,indexPathTxt, numQueriesTxt;
+	private JButton loadBtn,benchFcBtn,indexFcBtn, oneQueryBtn, allQueryBtn;
+	private JFileChooser benchFc, indexFc;
+	private JComboBox<BenchMarkID> benchMarkCB;
+	private JComboBox<ModelsID> modelCB;
+	private JComboBox<TolerantID> tolerantCB;
+	private JComboBox<DocFields> fieldCB;
+	private JTextArea resultArea;
+	
+	private SmartBCM smrt;
+	private boolean benchMarkLoaded;
+	
+	/** Benchmark mode panel contains buttons interactive and area. */
+	public BenchmarkModePanel() {
+		super();
+		
+		smrt = null;
+		benchMarkLoaded = false;
+		
+		JLabel queryLb = new JLabel("Query:");
+		queryLb.setBackground(BACKGROUND_COLOR);
+		queryLb.setForeground(Color.WHITE);
+		JLabel benchPathLb = new JLabel("Benchmark path:");
+		benchPathLb.setBackground(BACKGROUND_COLOR);
+		benchPathLb.setForeground(Color.WHITE);
+		JLabel indexedPathLb = new JLabel("Index path:");
+		indexedPathLb.setBackground(BACKGROUND_COLOR);
+		indexedPathLb.setForeground(Color.WHITE);
+		JLabel benchMarkLb = new JLabel("Benchmark: ");
+		benchMarkLb.setBackground(BACKGROUND_COLOR);
+		benchMarkLb.setForeground(Color.WHITE);
+		JLabel modelLb = new JLabel("Model:");
+		modelLb.setBackground(BACKGROUND_COLOR);
+		modelLb.setForeground(Color.WHITE);
+		JLabel tolerantLb = new JLabel("Tolerant mode: ");
+		tolerantLb.setBackground(BACKGROUND_COLOR);
+		tolerantLb.setForeground(Color.WHITE);
+		JLabel fieldLb = new JLabel("Field: ");
+		fieldLb.setBackground(BACKGROUND_COLOR);
+		fieldLb.setForeground(Color.WHITE);
+		JLabel numQueriesLb = new JLabel("Num queries found:");
+		numQueriesLb.setBackground(BACKGROUND_COLOR);
+		numQueriesLb.setForeground(Color.WHITE);
+		
+		queryNumCB = new JComboBox<Integer>();
+		for (int i = 1 ; i < MAX_NUM_QUERY+1 ; i++)
+			queryNumCB.addItem(new Integer(i));
+		queryNumCB.addActionListener(this);
+		
+		benchMarkCB = new JComboBox<BenchMarkID>(BenchMarkID.values());
+		modelCB = new JComboBox<ModelsID>(ModelsID.values());
+		tolerantCB = new JComboBox<TolerantID>(TolerantID.values());
+		fieldCB = new JComboBox<DocFields>(DocFields.values());
+		
+		queryArea = new JTextArea(QUERY_AREA_ROW,QUERY_AREA_COLUMN);
+		JScrollPane scrollQuery = new JScrollPane(queryArea);
+		scrollQuery.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		queryArea.setEditable(false);
+		resultArea = new JTextArea(RESULT_AREA_ROW,RESULT_AREA_COLUMN);
+		JScrollPane scrollResult = new JScrollPane(resultArea);
+		scrollResult.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		resultArea.setEditable(false);
+	
+		benchPathTxt = new JTextField("",MAX_PATH_LEN);
+		benchPathTxt.setEditable(false);
+		indexPathTxt = new JTextField("",MAX_PATH_LEN);
+		indexPathTxt.setEditable(false);
+		numQueriesTxt = new JTextField("",NUM_QUERY_LEN);
+		numQueriesTxt.setEditable(false);
+		loadBtn = new JButton("Load benchmark");
+		loadBtn.addActionListener(this);
+		benchFcBtn = new JButton("Choose");
+		benchFcBtn.addActionListener(this);
+		indexFcBtn = new JButton("Choose");
+		indexFcBtn.addActionListener(this);
+		oneQueryBtn = new JButton("Query");
+		oneQueryBtn.addActionListener(this);
+		allQueryBtn = new JButton("Evaluate all benchmark");
+		allQueryBtn.addActionListener(this);
+		
+		benchFc = new JFileChooser("./");
+		indexFc = new JFileChooser("./");
+		benchFc.setDialogTitle("Select benchmark");
+		indexFc.setDialogTitle("Select benchmark index");
+		benchFc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		indexFc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		benchFc.setAcceptAllFileFilterUsed(false);
+		indexFc.setAcceptAllFileFilterUsed(false);
+		
+		setLayout(new FlowLayout(FlowLayout.TRAILING));
+		add(queryLb); add(queryNumCB); add(scrollQuery);
+		add(benchPathLb); add(benchPathTxt); add(benchFcBtn);
+		add(indexedPathLb); add(indexPathTxt); add(indexFcBtn);
+		add(tolerantLb); add(tolerantCB); add(modelLb); add(modelCB);
+		add(fieldLb); add(fieldCB);
+		add(benchMarkLb); add(benchMarkCB); 
+		add(numQueriesLb); add(numQueriesTxt); add(loadBtn);
+		add(oneQueryBtn); add(allQueryBtn);
+		add(scrollResult);
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		Object source = e.getSource();
+		if (source ==  benchFcBtn) {
+			if (benchFc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+				String benchPath = benchFc.getSelectedFile().getPath();
+				benchPathTxt.setText(benchPath);
+			}
+		} if (source == indexFcBtn) {
+			if (indexFc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+				String indexPath = indexFc.getSelectedFile().getPath();
+				indexPathTxt.setText(indexPath);
+			}
+		} if (source == loadBtn && 
+				!(benchPathTxt.getText().equals("") || 
+				  indexPathTxt.getText().equals(""))) {
+			try {
+				smrt = new SmartBCM(benchPathTxt.getText(), indexPathTxt.getText());
+				numQueriesTxt.setText(smrt.getNumQueries()+"");
+				benchMarkLoaded = true;
+				queryArea.setText(smrt.getQuery((int)queryNumCB.getSelectedItem()));
+			} catch (IOException excep) {
+				System.err.println("Error occurred during smart benchmark init");
+				excep.printStackTrace();
+			}
+			resultArea.setText("Testing and producing results...");
+			
+		} if (benchMarkLoaded && source == queryNumCB) {
+			queryArea.setText(smrt.getQuery((int)queryNumCB.getSelectedItem()));
+		} if (benchMarkLoaded && source == oneQueryBtn) {
+			try {
+				resultArea.setText(
+						smrt.getTextPrecisionRecallEvaluation(
+						(int)queryNumCB.getSelectedItem(),
+						(ModelsID)modelCB.getSelectedItem(), 
+						(TolerantID)tolerantCB.getSelectedItem(), 
+						(DocFields)fieldCB.getSelectedItem())
+						);
+			} catch (Exception e1) {
+				System.err.println("Error occured during precision recall evaluation");
+				e1.printStackTrace();
+			}
+		} if (benchMarkLoaded && source == allQueryBtn) {
+			try {
+				resultArea.setText(
+						smrt.getWholePrecRecEval(
+						(ModelsID)modelCB.getSelectedItem(), 
+						(TolerantID)tolerantCB.getSelectedItem(), 
+						(DocFields)fieldCB.getSelectedItem())
+						);
+			} catch (Exception e1) {
+				System.err.println("Error occured during precision recall evaluation");
+				e1.printStackTrace();
+			}
+		}
+		
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g) {
+		g.setColor(BACKGROUND_COLOR) ;
+		g.fillRect(0, 0, getWidth(), getHeight()) ;
+		
+		Toolkit t = Toolkit.getDefaultToolkit() ;
+		if (!(new File("./img/poweredbylucene.png").exists())) {
+			System.err.println("Logo file path error") ;
+			System.exit(-1);
+		}
+		logo = t.getImage("./img/poweredbylucene.png") ;
+		MediaTracker m = new MediaTracker(this) ;
+		m.addImage(logo, 1) ;
+		try { m.waitForAll(); 
+		} catch (InterruptedException e) {
+			System.err.println("Logo not loaded") ;
+			System.exit(-1);
+		}
+		
+		g.drawImage(logo, LOGO_OFFSET_X, getHeight()-LOGO_INVERSE_OFFSET_Y,
+						  LOGO_WIDTH, LOGO_HEIGHT, null) ;
+	}
+}

@@ -6,8 +6,8 @@
 	<section name="DialogBounds_SearchDialog">
 		<item value="601" key="DIALOG_WIDTH"/>
 		<item value="172" key="DIALOG_Y_ORIGIN"/>
-		<item value="502" key="DIALOG_HEIGHT"/>
 		<item value="618" key="DIALOG_X_ORIGIN"/>
+		<item value="502" key="DIALOG_HEIGHT"/>
 		<item value="1|Ubuntu|11.0|0|GTK|1|" key="DIALOG_FONT_NAME"/>
 	</section>
 	<section name="Search">
@@ -26,11 +26,11 @@
 			<item value="org.eclipse.jdt.ui.JavaSearchPage"/>
 		</list>
 	</section>
-	<section name="org.eclipse.search.text.FileSearchResultPage">
-		<item value="1000" key="org.eclipse.search.resultpage.limit"/>
-	</section>
 	<section name="SearchDialog">
 		<item value="org.eclipse.search.internal.ui.text.TextSearchPage" key="PREVIOUS_PAGE"/>
+	</section>
+	<section name="org.eclipse.search.text.FileSearchResultPage">
+		<item value="1000" key="org.eclipse.search.resultpage.limit"/>
 	</section>
 	<section name="TextSearchPage">
 		<item value="false" key="CASE_SENSITIVE"/>
@@ -39,8 +39,8 @@
 		<item value="false" key="WHOLE_WORD"/>
 		<item value="2" key="HISTORY_SIZE"/>
 		<section name="EXTENSIONS">
-			<item value="*" key="1"/>
-			<item value="" key="0"/>
+			<item value="" key="1"/>
+			<item value="*" key="0"/>
 		</section>
 		<section name="HISTORY0">
 			<item value="false" key="isRegExSearch"/>

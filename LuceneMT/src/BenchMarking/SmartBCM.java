@@ -31,13 +31,13 @@ public class SmartBCM {
 	
 	private final static String UTF8_BOM = "\uFEFF";
 	
+	private final static int STANDARD_RECALL = 11;
+	
 	// query at position 0 is unused
 	private String[] queries;
 	// relevant docs for each given query, again array 0 is unused
 	private int[][] relevantDocs;
-	private double[][] naturalLevelRecPrec;
 	
-	private String benchMarkPath;
 	private String searchIndexPath;
 	
 	/** Evaluates precision and recall on each query of query set
@@ -58,7 +58,6 @@ public class SmartBCM {
 				throw new IllegalArgumentException();
 			}
 		
-		this.benchMarkPath = benchMarkPath;
 		this.searchIndexPath = searchIndexPath;
 		
 		queries = null;
@@ -207,47 +206,146 @@ public class SmartBCM {
 	 * @return
 	 * @throws Exception
 	 */
-	public String getTextNaturalPrecisionRecallEvaluation
+	public String getTextPrecisionRecallEvaluation
+		(int queryID,ModelsID model,TolerantID tolerant,DocFields field)
+		throws Exception {
+		
+		double[] precNatRecLevel = getNaturalPrecRecEval
+				(queryID, model,tolerant, field);
+					
+		String result = "Precision on natural recall level: "+System.getProperty("line.separator");
+		for (int i = 0 ; i < precNatRecLevel.length ; i++) {
+			result += "Natural Recall level precision "+(i+1)+"/"+precNatRecLevel.length+" "
+					+precNatRecLevel[i]*100+"% " + System.getProperty("line.separator");
+		}
+		
+		double[] precStandardRecLevel = getStandardPrecRecEval
+				(queryID, model, tolerant, field);
+		result += "Precision on standard recall level: "+System.getProperty("line.separator");
+		for (int i = 0 ; i < precStandardRecLevel.length ; i++) {
+			result += //"Standard Recall level precision "+(i+1)+"/"+precStandardRecLevel.length+" "
+					precStandardRecLevel[i]+" " + System.getProperty("line.separator");
+		}
+		
+		/*result += System.getProperty("line.separator")+"Result docs: ";
+		for (int i = 0 ; i < resultDocs.length ; i++) {
+			result += resultDocs[i]+" ";
+		}
+		result += System.getProperty("line.separator")+"Relevant docs: ";
+		for (int i = 0 ; i < relevantDocNum ; i++) {
+			result += relevantDoc[i]+" ";
+		}*/
+		result += System.getProperty("line.separator");
+		
+		return result;
+		
+	}
+	
+	public String getWholePrecRecEval(ModelsID model,TolerantID tolerant,
+			DocFields field) throws Exception {
+		
+		String result = "Benchmark Average precision recall:"+System.getProperty("line.separator");
+		double[] wholeRecLevel = getAverageStandardPrecRecEval(model, tolerant, field);
+		for (int i = 0 ; i < wholeRecLevel.length ; i++) {
+			result += wholeRecLevel[i]+" " + System.getProperty("line.separator");
+		}
+		
+		return result;
+	}
+	
+	// Ottieni l'array di precision ai livelli standard, eventuamente
+	// interpolata da quella naturale
+	private double[] getStandardPrecRecEval
 		(int queryID,ModelsID model,TolerantID tolerant,DocFields field)
 			throws Exception {
-		IndexExplorer ie = new IndexExplorer(getQuery(queryID),searchIndexPath,
-				model,tolerant,field);
-		int[] resultDocs = ie.getResultIDArray();
-		int relevantDocNum = relevantDocs[queryID].length;
-		int[] relevantDoc = relevantDocs[queryID];
+		double[] precNatRecLevel = 
+				getNaturalPrecRecEval(queryID, model,tolerant,field);	
+		int numNatLevels = precNatRecLevel.length;
 		
-		double[] precNatRecLevel = new double[relevantDoc.length];
-		int naturalLevel = 1;
-		for (int i = 0 ; i < resultDocs.length ; i++) {
-			if (isRelevant(relevantDoc,resultDocs[i])) {
-				precNatRecLevel[naturalLevel-1] = (double)naturalLevel/(i+1);
-				naturalLevel++;
+		/* Il calcolo avviene tramite la seguente formula
+		 * Formula j-th standard P(rj) = max(rj<=r<=rj+1){P(r) naturale)}
+		 * si traduce in dividere il plot della precision
+	     * naturale in 11 parti, e per ciascuno osservare il massimo valore
+		 * all'interno dell'intervallo*/ 
+		double[] precStandardRecLevel = new double[STANDARD_RECALL];
+		
+		/* Se sono uguali di dimensione, allora si copia e si aggiunge la 
+		 * convenzione sul livello 0 eguagliandolo al valore successivo */
+		if ((STANDARD_RECALL-1) == numNatLevels) {
+			for (int i = 1 ; i < STANDARD_RECALL ; i++) {
+				precStandardRecLevel[i] = precNatRecLevel[i-1];
 			}
 		}
 		
-		for (int i = naturalLevel ; i < precNatRecLevel.length ; i++) {
-			precNatRecLevel[i] = 0F; // if not all relevant document are found
+		/* Se i recall naturali sono di piu' di quelli standard, allora l'idea
+		 * algoritmica è, se devo calcolare il recall standard j-esimo
+		 * rj = 0.5, allora scorro finchè non mi imbatto al recall naturale
+		 * inferiore a rj, allora so che il recall naturale immediatamente
+		 * precedente a quello trovato
+		 */
+		
+		/* Se i livelli di recall naturale sono minori di quello standard 
+		 * allora P(rj) equivale al massimo tra P(r) naturale precedente
+		 * e immediatamente successivo (o coincidente) al livello j-esimo */
+		if ((STANDARD_RECALL-1) > numNatLevels) {
+			int z = precNatRecLevel.length-2;
+			for (int i = STANDARD_RECALL-2 ; i > 0 ; i--) {
+				if ((double)i/(STANDARD_RECALL-1) > (z+1)/(double)numNatLevels) {
+					precStandardRecLevel[i] = precStandardRecLevel[i+1];
+				} else {
+					precStandardRecLevel[i] = precNatRecLevel[z];
+					if (z > 0)
+						z--;
+				}
+			}
 		}
 		
-		System.out.println("Precision on natural recall level: ");
-		for (int i = 0 ; i < precNatRecLevel.length ; i++) {
-			System.out.println("Natural Recall level "+i+"/"+precNatRecLevel.length+" "
-					+precNatRecLevel[i]*100+"% ");
-		}
-		System.out.println("");
-
-		System.out.println("Result docs");
-		for (int i = 0 ; i < resultDocs.length ; i++) {
-			System.out.print(resultDocs[i]+" ");
-		}
-		System.out.println("\nRelevant docs");
-		for (int i = 0 ; i < relevantDocNum ; i++) {
-			System.out.print(relevantDoc[i]+" ");
-		}
-		System.out.println("\n"); 
-		
-		return "";
+		precStandardRecLevel[0] = precNatRecLevel[0];
+				
+		return precStandardRecLevel;
 	}
+	
+	private double[] getAverageStandardPrecRecEval
+		(ModelsID model,TolerantID tolerant,DocFields field) throws Exception {
+		double[] standardPrecRec = new double[STANDARD_RECALL];
+		for (int i = 0 ; i < STANDARD_RECALL ; i++)
+			standardPrecRec[i] = 0;
+		for (int i = 1 ; i < queries.length ; i++) {
+			double[] stnd = getStandardPrecRecEval(i,model,tolerant,field);
+			for (int j = 0 ; j < STANDARD_RECALL ; j++)
+				standardPrecRec[j] += stnd[j]; 
+		}
+		for (int i = 0 ; i < STANDARD_RECALL ; i++)
+			standardPrecRec[i] /= queries.length;
+		
+		return standardPrecRec;
+	}
+	
+	// Ottieni l'array di precision a livelli naturali di recall
+	private double[] getNaturalPrecRecEval
+	(int queryID,ModelsID model,TolerantID tolerant,DocFields field)
+		throws Exception {
+	IndexExplorer ie = new IndexExplorer(getQuery(queryID),searchIndexPath,
+			model,tolerant,field);
+	
+	int[] resultDocs = ie.getResultIDArray();
+	int[] relevantDoc = relevantDocs[queryID];
+	
+	double[] precNatRecLevel = new double[relevantDoc.length];
+	int naturalLevel = 1;
+	for (int i = 0 ; i < resultDocs.length ; i++) {
+		if (isRelevant(relevantDoc,resultDocs[i])) {
+			precNatRecLevel[naturalLevel-1] = naturalLevel/(double)(i+1);
+			naturalLevel++;
+		}
+	}
+	
+	for (int i = naturalLevel ; i < precNatRecLevel.length ; i++) {
+		precNatRecLevel[i] = 0F; // if not all relevant document are found
+	}
+	
+	return precNatRecLevel;
+}
 	
 	private boolean isRelevant(int[] relevantDocs, int id) {
 		int numRelevantDocs = relevantDocs.length;

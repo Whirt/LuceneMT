@@ -23,6 +23,12 @@ public class Window extends JFrame {
 	public Window() {
 		super(title);
 		setSize(FRAME_WIDTH,FRAME_HEIGHT);
+		/*
+		XYPlot plot;
+		JFreeChart jf = new JFreeChart("Random",plot);
+		ChartPanel cp = new ChartPanel(jf);
+		*/
+		
 		JPanel panel = new JPanel();
 		JTabbedPane tab = new JTabbedPane();
 		FreeModePanel pn = new FreeModePanel();

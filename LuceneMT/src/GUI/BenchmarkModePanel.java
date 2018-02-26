@@ -115,7 +115,7 @@ public class BenchmarkModePanel extends JPanel implements ActionListener {
 		resultArea = new JTextArea(RESULT_AREA_ROW,RESULT_AREA_COLUMN);
 		JScrollPane scrollResult = new JScrollPane(resultArea);
 		scrollResult.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		resultArea.setEditable(false);
+		resultArea.setEditable(true); // providing copy and paste
 	
 		benchPathTxt = new JTextField("",MAX_PATH_LEN);
 		benchPathTxt.setEditable(false);
@@ -186,17 +186,29 @@ public class BenchmarkModePanel extends JPanel implements ActionListener {
 			queryArea.setText(smrt.getQuery((int)queryNumCB.getSelectedItem()));
 		} if (benchMarkLoaded && source == oneQueryBtn) {
 			try {
-				smrt.getTextNaturalPrecisionRecallEvaluation(
+				resultArea.setText(
+				smrt.getTextPrecisionRecallEvaluation(
 						(int)queryNumCB.getSelectedItem(),
 						(ModelsID)modelCB.getSelectedItem(), 
 						(TolerantID)tolerantCB.getSelectedItem(), 
-						(DocFields)fieldCB.getSelectedItem());
+						(DocFields)fieldCB.getSelectedItem())
+				);
 			} catch (Exception e1) {
 				System.err.println("Error occured during precision recall evaluation");
 				e1.printStackTrace();
 			}
 		} if (benchMarkLoaded && source == allQueryBtn) {
-			
+			try {
+				resultArea.setText(
+				smrt.getWholePrecRecEval(
+						(ModelsID)modelCB.getSelectedItem(), 
+						(TolerantID)tolerantCB.getSelectedItem(), 
+						(DocFields)fieldCB.getSelectedItem())
+				);
+			} catch (Exception e1) {
+				System.err.println("Error occured during precision recall evaluation");
+				e1.printStackTrace();
+			}
 		}
 		
 	}
