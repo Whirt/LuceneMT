@@ -246,6 +246,7 @@ public class SmartBCM {
 		
 		String result = "Benchmark Average precision recall:"+System.getProperty("line.separator");
 		double[] wholeRecLevel = getAverageStandardPrecRecEval(model, tolerant, field);
+
 		for (int i = 0 ; i < wholeRecLevel.length ; i++) {
 			result += wholeRecLevel[i]+" " + System.getProperty("line.separator");
 		}
@@ -254,55 +255,87 @@ public class SmartBCM {
 	}
 	
 	// Ottieni l'array di precision ai livelli standard, eventuamente
-	// interpolata da quella naturale
+	// interpolata da quella naturale, funzione piu' complessa del progetto
 	private double[] getStandardPrecRecEval
 		(int queryID,ModelsID model,TolerantID tolerant,DocFields field)
-			throws Exception {
-		double[] precNatRecLevel = 
-				getNaturalPrecRecEval(queryID, model,tolerant,field);	
-		int numNatLevels = precNatRecLevel.length;
+		throws Exception {
 		
+		double[] natPrec = getNaturalPrecRecEval(queryID, model,tolerant,field);
+		int numNat = natPrec.length;
+
 		/* Il calcolo avviene tramite la seguente formula
-		 * Formula j-th standard P(rj) = max(rj<=r<=rj+1){P(r) naturale)}
-		 * si traduce in dividere il plot della precision
-	     * naturale in 11 parti, e per ciascuno osservare il massimo valore
-		 * all'interno dell'intervallo*/ 
-		double[] precStandardRecLevel = new double[STANDARD_RECALL];
-		
-		/* Se sono uguali di dimensione, allora si copia e si aggiunge la 
-		 * convenzione sul livello 0 eguagliandolo al valore successivo */
-		if ((STANDARD_RECALL-1) == numNatLevels) {
-			for (int i = 1 ; i < STANDARD_RECALL ; i++) {
-				precStandardRecLevel[i] = precNatRecLevel[i-1];
+		 * Formula j-th standard P(rj) = max(rj<=r<=rj+1){P(r) naturale)} */
+		double[] stdPrec = new double[STANDARD_RECALL];
+		final int TEN = STANDARD_RECALL-1;
+
+		stdPrec[TEN] = natPrec[numNat-1];
+		boolean onlyOne = numNat == 1;
+		boolean sameQty = TEN == numNat;
+		if (onlyOne || sameQty) { // in entrambi i casi devo copiare
+			for (int i = 1 ; i < TEN ; i++) {
+				if (onlyOne) stdPrec[i] = natPrec[0];
+				else stdPrec[i] = natPrec[i-1];
 			}
+			if (sameQty) stdPrec[0] = stdPrec[1];
+			else stdPrec[0] = natPrec[0];
 		}
-		
-		/* Se i recall naturali sono di piu' di quelli standard, allora l'idea
-		 * algoritmica è, se devo calcolare il recall standard j-esimo
-		 * rj = 0.5, allora scorro finchè non mi imbatto al recall naturale
-		 * inferiore a rj, allora so che il recall naturale immediatamente
-		 * precedente a quello trovato
-		 */
-		
-		/* Se i livelli di recall naturale sono minori di quello standard 
-		 * allora P(rj) equivale al massimo tra P(r) naturale precedente
-		 * e immediatamente successivo (o coincidente) al livello j-esimo */
-		if ((STANDARD_RECALL-1) > numNatLevels) {
-			int z = precNatRecLevel.length-2;
-			for (int i = STANDARD_RECALL-2 ; i > 0 ; i--) {
-				if ((double)i/(STANDARD_RECALL-1) > (z+1)/(double)numNatLevels) {
-					precStandardRecLevel[i] = precStandardRecLevel[i+1];
-				} else {
-					precStandardRecLevel[i] = precNatRecLevel[z];
-					if (z > 0)
-						z--;
+		boolean noOverFlow;
+		if (numNat < TEN) {
+			for (int i = 1 ; i < TEN ; i++) {
+				int k = 0;
+				boolean natRecSmaller;
+				do { k++;
+				     natRecSmaller = (double)k/numNat <= (double)i/TEN;
+				     noOverFlow = k <= numNat;
+				} while (natRecSmaller && noOverFlow);
+				double confrontVal = natPrec[k-1];
+
+				if (k == numNat) {
+					stdPrec[i] = confrontVal;
+					continue;
 				}
+
+				noOverFlow = (i+1) <= TEN;
+				boolean nextStdRecIncludedSameRec = (double)(i+1)/TEN <= (double)k/numNat;
+				if (noOverFlow && !nextStdRecIncludedSameRec)
+					stdPrec[i] = Math.max(confrontVal,natPrec[k]);
+				else
+					stdPrec[i] = confrontVal;
+
+			}
+			stdPrec[0] = stdPrec[1];
+		}
+		if (numNat > TEN) {
+			for (int i = 0 ; i < TEN ; i++) {
+				// mando due carabinieri ad affiancarsi al primo j a sx
+				// al j+1 a dx (il teorema in inglese si dice squeeze theorem)
+				int k = 0;
+				boolean dxStart;
+				do { k++;
+				     noOverFlow = k <= numNat;
+				     dxStart = (double)k/numNat > (double)i/TEN;
+				} while (noOverFlow && !dxStart);
+				int k_start = k;
+
+
+                		boolean sxEnd;
+				do { k++;
+				    noOverFlow = k <= numNat;
+				    sxEnd = (double)k/numNat > (double)(i+1)/TEN;
+				} while (noOverFlow && !sxEnd);
+				int k_stop = k;
+
+				double max = natPrec[k_start-1];
+				for (int j = k_start+1 ; j < k_stop ; j++) {
+					if (max < natPrec[j-1])
+						max = natPrec[j-1];
+				}
+				stdPrec[i] = max;
+
 			}
 		}
-		
-		precStandardRecLevel[0] = precNatRecLevel[0];
 				
-		return precStandardRecLevel;
+		return stdPrec;
 	}
 	
 	private double[] getAverageStandardPrecRecEval
