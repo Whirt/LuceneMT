@@ -19,6 +19,12 @@ import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.BooleanSimilarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.similarities.DFRSimilarity;
+import org.apache.lucene.search.similarities.BasicModelP;
+import org.apache.lucene.search.similarities.AfterEffectL;
+import org.apache.lucene.search.similarities.NormalizationH1;
+import org.apache.lucene.search.similarities.IndependenceChiSquared;
+import org.apache.lucene.search.similarities.DFISimilarity;
+import org.apache.lucene.search.similarities.LMDirichletSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -69,6 +75,14 @@ public class IndexMaker {
 			config.setSimilarity(new BooleanSimilarity()); break;
 		case BM25_PROBABILITY: 
 			config.setSimilarity(new BM25Similarity()); break;
+		case DFR:
+			config.setSimilarity(new DFRSimilarity(new BasicModelP(),
+												   new AfterEffectL(),
+												   new NormalizationH1())); break;
+		case DFI:
+			config.setSimilarity(new DFISimilarity(new IndependenceChiSquared())); break;
+		case LM:
+			config.setSimilarity(new LMDirichletSimilarity()); break;	
 		default: 
 			config.setSimilarity(new ClassicSimilarity()); 
 		}

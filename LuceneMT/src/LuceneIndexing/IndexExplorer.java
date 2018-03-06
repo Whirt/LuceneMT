@@ -19,6 +19,14 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.BooleanSimilarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.DFRSimilarity;
+import org.apache.lucene.search.similarities.BasicModelP;
+import org.apache.lucene.search.similarities.AfterEffectL;
+import org.apache.lucene.search.similarities.NormalizationH1;
+import org.apache.lucene.search.similarities.IndependenceChiSquared;
+
+import org.apache.lucene.search.similarities.DFISimilarity;
+import org.apache.lucene.search.similarities.LMDirichletSimilarity;
 import org.apache.lucene.search.spans.SpanMultiTermQueryWrapper;
 import org.apache.lucene.search.spans.SpanNearQuery;
 import org.apache.lucene.search.spans.SpanQuery;
@@ -87,6 +95,14 @@ public class IndexExplorer {
 			searcher.setSimilarity(new BooleanSimilarity()); break;
 		case BM25_PROBABILITY: 
 			searcher.setSimilarity(new BM25Similarity()); break;
+		case DFR:
+			searcher.setSimilarity(new DFRSimilarity(new BasicModelP(),
+													 new AfterEffectL(),
+													 new NormalizationH1())); break;
+		case DFI:
+			searcher.setSimilarity(new DFISimilarity(new IndependenceChiSquared())); break;
+		case LM:
+			searcher.setSimilarity(new LMDirichletSimilarity()); break;
 		default: searcher.setSimilarity(new ClassicSimilarity());
 		}
 		

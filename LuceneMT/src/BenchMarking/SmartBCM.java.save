@@ -29,6 +29,8 @@ import utils.Finder;
  */
 public class SmartBCM {
 	
+	private final static String UTF8_BOM = "\uFEFF";
+	
 	private final static int STANDARD_RECALL = 11;
 	
 	// query at position 0 is unused
@@ -244,7 +246,6 @@ public class SmartBCM {
 		
 		String result = "Benchmark Average precision recall:"+System.getProperty("line.separator");
 		double[] wholeRecLevel = getAverageStandardPrecRecEval(model, tolerant, field);
-
 		for (int i = 0 ; i < wholeRecLevel.length ; i++) {
 			result += wholeRecLevel[i]+" " + System.getProperty("line.separator");
 		}
@@ -253,87 +254,30 @@ public class SmartBCM {
 	}
 	
 	// Ottieni l'array di precision ai livelli standard, eventuamente
-	// interpolata da quella naturale, funzione piu' complessa del progetto
+	// interpolata da quella naturale, potenzialmente la parte piu' logicamente complessa
 	private double[] getStandardPrecRecEval
 		(int queryID,ModelsID model,TolerantID tolerant,DocFields field)
-		throws Exception {
-		
-		double[] natPrec = getNaturalPrecRecEval(queryID, model,tolerant,field);
+			throws Exception {
+		double[] natPrec = getNaturalPrecRecEval(queryID, model,tolerant,field);	
 		int numNat = natPrec.length;
-
+		
 		/* Il calcolo avviene tramite la seguente formula
 		 * Formula j-th standard P(rj) = max(rj<=r<=rj+1){P(r) naturale)} */
-		double[] stdPrec = new double[STANDARD_RECALL];
-		final int TEN = STANDARD_RECALL-1;
-
-		stdPrec[TEN] = natPrec[numNat-1];
-		boolean onlyOne = numNat == 1;
-		boolean sameQty = TEN == numNat;
-		if (onlyOne || sameQty) { // in entrambi i casi devo copiare
-			for (int i = 1 ; i < TEN ; i++) {
-				if (onlyOne) stdPrec[i] = natPrec[0];
-				else stdPrec[i] = natPrec[i-1];
-			}
-			if (sameQty) stdPrec[0] = stdPrec[1];
-			else stdPrec[0] = natPrec[0];
-		}
-		boolean noOverFlow;
-		if (numNat < TEN) {
-			for (int i = 1 ; i < TEN ; i++) {
-				int k = 0;
-				boolean natRecSmaller;
-				do { k++;
-				     natRecSmaller = (double)k/numNat <= (double)i/TEN;
-				     noOverFlow = k <= numNat;
-				} while (natRecSmaller && noOverFlow);
-				double confrontVal = natPrec[k-1];
-
-				if (k == numNat) {
-					stdPrec[i] = confrontVal;
-					continue;
-				}
-
-				noOverFlow = (i+1) <= TEN;
-				boolean nextStdRecIncludedSameRec = (double)(i+1)/TEN <= (double)k/numNat;
-				if (noOverFlow && !nextStdRecIncludedSameRec)
-					stdPrec[i] = Math.max(confrontVal,natPrec[k]);
-				else
-					stdPrec[i] = confrontVal;
-
-			}
-			stdPrec[0] = stdPrec[1];
-		}
-		if (numNat > TEN) {
-			for (int i = 0 ; i < TEN ; i++) {
-				// mando due carabinieri ad affiancarsi al primo j a sx
-				// al j+1 a dx (il teorema in inglese si dice squeeze theorem)
-				int k = 0;
-				boolean dxStart;
-				do { k++;
-				     noOverFlow = k <= numNat;
-				     dxStart = (double)k/numNat > (double)i/TEN;
-				} while (noOverFlow && !dxStart);
-				int k_start = k;
-
-
-                		boolean sxEnd;
-				do { k++;
-				    noOverFlow = k <= numNat;
-				    sxEnd = (double)k/numNat > (double)(i+1)/TEN;
-				} while (noOverFlow && !sxEnd);
-				int k_stop = k;
-
-				double max = natPrec[k_start-1];
-				for (int j = k_start+1 ; j < k_stop ; j++) {
-					if (max < natPrec[j-1])
-						max = natPrec[j-1];
-				}
-				stdPrec[i] = max;
-
+		const int standard = STANDARD_RECALL;
+		double[] stdPrec = new double[STDN];
+		
+		
+		stdPrec[standard] = natPrec
+		/* Se sono uguali di dimensione, allora si copia e si aggiunge la 
+		 * convenzione sul livello 0 eguagliandolo al valore successivo */
+		if ((STND-1) == numNat) {
+			for (int i = 1 ; i < STND ; i++) {
+				stdPrec[i] = natPrec[i-1];
 			}
 		}
+		
 				
-		return stdPrec;
+		return pStnd;
 	}
 	
 	private double[] getAverageStandardPrecRecEval
